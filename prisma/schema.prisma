@@ -117,7 +117,7 @@ model BranchAdmin {
 }
 
 model BranchStaff {
-  id        String   @id @unique
+  id        String   @id @default(cuid())
   userId    String   @unique
   branchId  String
   createdAt DateTime @default(now())
