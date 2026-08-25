@@ -18,13 +18,11 @@ export async function POST(request: Request) {
     create: {
       userId: session.user.id,
       endpoint: body.endpoint,
-      expirationTime: body.expirationTime ?? null,
       p256dh: body.keys.p256dh,
       auth: body.keys.auth,
     },
     update: {
       userId: session.user.id,
-      expirationTime: body.expirationTime ?? null,
       p256dh: body.keys.p256dh,
       auth: body.keys.auth,
       updatedAt: new Date(),
