@@ -7,8 +7,254 @@ datasource db {
   provider = "postgresql"
 }
 
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  phone         String?
+  password      String?
+  role          UserRole  @default(CUSTOMER)
+  emailVerified Boolean   @default(false)
+  banned        Boolean   @default(false)
+  banReason     String?
+  banExpires    DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Branch-level relationships
+  branchAdmin   BranchAdmin?
+  branchStaff   BranchStaff?
+  deliveryStaff DeliveryStaff?
+
+  // Orders
+  orders        Order[]
+
+  // Better Auth
+  sessions      Session[]
+  accounts      Account[]
+}
+
+model Session {
+  id             String   @id
+  expiresAt      DateTime
+  token          String   @unique
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  ipAddress      String?
+  userAgent      String?
+  userId         String
+  impersonatedBy String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  issuer                String?
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+}
+
+model Branch {
+  id             String            @id @default(cuid())
+  name           String
+  code           String            @unique
+  address        String?
+  latitude       Float
+  longitude      Float
+  deliveryRadius Float             @default(20)
+  isActive       Boolean           @default(true)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  inventory      BranchInventory[]
+  admins         BranchAdmin[]
+  staff          BranchStaff[]
+  deliveryStaff  DeliveryStaff[]
+  orders         Order[]
+
+  @@index([isActive])
+}
+
+model BranchAdmin {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  branchId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@index([branchId])
+  @@unique([branchId, userId])
+}
+
+model BranchStaff {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  branchId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([branchId])
+  @@unique([branchId, userId])
+}
+
+model DeliveryStaff {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  branchId  String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  orders Order[]
+
+  @@index([branchId])
+  @@unique([branchId, userId])
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  imageUrl  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products Product[]
+}
+
+model Product {
+  id          String            @id @default(cuid())
+  name        String
+  description String?
+  sku         String            @unique
+  imageUrl    String?
+  categoryId  String
+  isActive    Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  inventory   BranchInventory[]
+  orderItems  OrderItem[]
+
+  category Category @relation(fields: [categoryId], references: [id])
+
+  @@index([categoryId])
+  @@index([isActive])
+}
+
+model BranchInventory {
+  id        String   @id @default(cuid())
+  branchId  String
+  productId String
+  price     Decimal  @db.Decimal(10, 2)
+  stock     Int      @default(0)
+  isActive  Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+
+  branch  Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([branchId, productId])
+  @@index([branchId])
+  @@index([productId])
+  @@index([isActive])
+}
+
+model Order {
+  id                 String        @id @default(cuid())
+  orderNumber        String        @unique
+  customerId         String?
+  branchId           String
+  deliveryStaffId    String?
+  status             OrderStatus   @default(PENDING)
+  paymentStatus      PaymentStatus @default(PENDING)
+  subtotal           Decimal       @db.Decimal(10, 2)
+  deliveryFee        Decimal       @db.Decimal(10, 2)
+  total              Decimal       @db.Decimal(10, 2)
+  deliveryLatitude   Float
+  deliveryLongitude  Float
+  deliveryDistanceKm Float
+  customerName       String
+  customerPhone      String
+  notes              String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  branch        Branch         @relation(fields: [branchId], references: [id])
+  customer      User?          @relation(fields: [customerId], references: [id])
+  deliveryStaff DeliveryStaff? @relation(fields: [deliveryStaffId], references: [id])
+  items         OrderItem[]
+
+  @@index([customerId])
+  @@index([branchId])
+  @@index([deliveryStaffId])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  productId String
+  quantity  Int
+  unitPrice Decimal @db.Decimal(10, 2)
+  total     Decimal @db.Decimal(10, 2)
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model playing_with_neon {
+  id    Int    @id @default(autoincrement())
+  name  String
+  value Float? @db.Real
+}
+
 enum UserRole {
   CUSTOMER
+  ADMIN
+  BRANCH_ADMIN
   BRANCH_STAFF
   DELIVERY_STAFF
 }
@@ -28,154 +274,4 @@ enum PaymentStatus {
   PAID
   FAILED
   REFUNDED
-}
-
-model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  phone     String?
-  password  String
-  role      UserRole @default(CUSTOMER)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  orders          Order[]
-  branchStaff     BranchStaff?
-  deliveryStaff   DeliveryStaff?
-}
-
-model Branch {
-  id              String   @id @default(cuid())
-  name            String
-  code            String   @unique
-  address         String?
-  latitude        Float
-  longitude       Float
-  deliveryRadius  Float    @default(20)
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  inventory       BranchInventory[]
-  orders          Order[]
-  staff           BranchStaff[]
-  deliveryStaff   DeliveryStaff[]
-}
-
-model BranchStaff {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  branchId  String
-  createdAt DateTime @default(now())
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
-
-  @@index([branchId])
-}
-
-model DeliveryStaff {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  branchId  String
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  orders Order[]
-
-  @@index([branchId])
-}
-
-model Category {
-  id        String    @id @default(cuid())
-  name      String    @unique
-  imageUrl  String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-
-  products Product[]
-}
-
-model Product {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  sku         String   @unique
-  imageUrl    String?
-  categoryId  String
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  category  Category          @relation(fields: [categoryId], references: [id])
-  inventory BranchInventory[]
-  orderItems OrderItem[]
-
-  @@index([categoryId])
-}
-
-model BranchInventory {
-  id        String   @id @default(cuid())
-  branchId  String
-  productId String
-  price     Decimal  @db.Decimal(10, 2)
-  stock     Int      @default(0)
-  isActive  Boolean  @default(true)
-  updatedAt DateTime @updatedAt
-
-  branch  Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@unique([branchId, productId])
-  @@index([branchId])
-  @@index([productId])
-}
-
-model Order {
-  id                  String        @id @default(cuid())
-  orderNumber         String        @unique
-  customerId          String?
-  branchId            String
-  deliveryStaffId     String?
-  status              OrderStatus   @default(PENDING)
-  paymentStatus       PaymentStatus @default(PENDING)
-  subtotal            Decimal       @db.Decimal(10, 2)
-  deliveryFee         Decimal       @db.Decimal(10, 2)
-  total               Decimal       @db.Decimal(10, 2)
-  deliveryLatitude    Float
-  deliveryLongitude   Float
-  deliveryDistanceKm  Float
-  customerName        String
-  customerPhone       String
-  notes               String?
-  createdAt           DateTime      @default(now())
-  updatedAt           DateTime      @updatedAt
-
-  customer      User?          @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  branch        Branch         @relation(fields: [branchId], references: [id])
-  deliveryStaff DeliveryStaff? @relation(fields: [deliveryStaffId], references: [id])
-  items         OrderItem[]
-
-  @@index([customerId])
-  @@index([branchId])
-  @@index([deliveryStaffId])
-  @@index([status])
-}
-
-model OrderItem {
-  id        String  @id @default(cuid())
-  orderId   String
-  productId String
-  quantity  Int
-  unitPrice Decimal @db.Decimal(10, 2)
-  total     Decimal @db.Decimal(10, 2)
-
-  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id])
-
-  @@index([orderId])
-  @@index([productId])
 }

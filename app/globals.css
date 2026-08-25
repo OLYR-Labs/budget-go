@@ -1,130 +1,683 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: #fafafa;
+  --foreground: #111111;
+
+  --card: #ffffff;
+  --card-foreground: #111111;
+
+  --popover: #ffffff;
+  --popover-foreground: #111111;
+
+  /* Budget Go brand */
+  --primary: #111111;
+  --primary-foreground: #ffffff;
+
+  /* Purple accent */
+  --accent: #7c3aed;
+  --accent-foreground: #ffffff;
+
+  --secondary: #f4f1fb;
+  --secondary-foreground: #4c1d95;
+
+  --muted: #f5f5f5;
+  --muted-foreground: #737373;
+
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+
+  --success: #16a34a;
+  --success-foreground: #ffffff;
+
+  --warning: #d97706;
+  --warning-foreground: #ffffff;
+
+  --border: #e7e7e7;
+  --input: #e7e7e7;
+  --ring: #7c3aed;
+
+  --radius: 1rem;
+
+  /* Charts */
+  --chart-1: #7c3aed;
+  --chart-2: #111111;
+  --chart-3: #a78bfa;
+  --chart-4: #6d28d9;
+  --chart-5: #c4b5fd;
+
+  /* Sidebar */
+  --sidebar: #ffffff;
+  --sidebar-foreground: #111111;
+  --sidebar-primary: #111111;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f4f1fb;
+  --sidebar-accent-foreground: #4c1d95;
+  --sidebar-border: #e7e7e7;
+  --sidebar-ring: #7c3aed;
+}
+
+.dark {
+  --background: #0b0b0d;
+  --foreground: #fafafa;
+
+  --card: #141416;
+  --card-foreground: #fafafa;
+
+  --popover: #141416;
+  --popover-foreground: #fafafa;
+
+  --primary: #ffffff;
+  --primary-foreground: #111111;
+
+  --accent: #8b5cf6;
+  --accent-foreground: #ffffff;
+
+  --secondary: #211b2e;
+  --secondary-foreground: #ddd6fe;
+
+  --muted: #1a1a1d;
+  --muted-foreground: #a1a1aa;
+
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+
+  --success: #22c55e;
+  --success-foreground: #ffffff;
+
+  --warning: #f59e0b;
+  --warning-foreground: #111111;
+
+  --border: #27272a;
+  --input: #27272a;
+  --ring: #8b5cf6;
+
+  --chart-1: #8b5cf6;
+  --chart-2: #ffffff;
+  --chart-3: #a78bfa;
+  --chart-4: #7c3aed;
+  --chart-5: #c4b5fd;
+
+  --sidebar: #111113;
+  --sidebar-foreground: #fafafa;
+  --sidebar-primary: #ffffff;
+  --sidebar-primary-foreground: #111111;
+  --sidebar-accent: #211b2e;
+  --sidebar-accent-foreground: #ddd6fe;
+  --sidebar-border: #27272a;
+  --sidebar-ring: #8b5cf6;
+}
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
+
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --radius-sm: calc(var(--radius) - 0.5rem);
+  --radius-md: calc(var(--radius) - 0.25rem);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  --radius-xl: calc(var(--radius) + 0.25rem);
+  --radius-2xl: calc(var(--radius) + 0.5rem);
+  --radius-3xl: calc(var(--radius) + 0.75rem);
+  --radius-4xl: calc(var(--radius) + 1rem);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
 }
 
-:root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
-
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
-}
+/* --------------------------------------------------
+   Base styles
+-------------------------------------------------- */
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    border-color: var(--border);
   }
-  body {
-    @apply bg-background text-foreground;
-  }
+
   html {
-    @apply font-sans;
+    scroll-behavior: smooth;
+
+    /*
+      Theme transition.
+      This allows the entire document background to fade
+      instead of changing instantly.
+    */
+    transition:
+      background-color 400ms ease,
+      color 400ms ease;
+  }
+
+  body {
+    min-height: 100vh;
+
+    background-color: var(--background);
+    color: var(--foreground);
+
+    font-family:
+      Arial,
+      Helvetica,
+      sans-serif;
+
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+
+    /*
+      Main page transition.
+    */
+    transition:
+      background-color 400ms ease,
+      color 400ms ease;
+  }
+
+  /*
+    Smooth theme transition for normal UI surfaces.
+  */
+  body,
+  header,
+  main,
+  section,
+  aside,
+  footer,
+  nav,
+  article,
+  form,
+  button,
+  input,
+  textarea,
+  select {
+    transition:
+      background-color 400ms ease,
+      border-color 400ms ease,
+      color 400ms ease,
+      box-shadow 400ms ease;
+  }
+
+  button,
+  a,
+  input,
+  textarea,
+  select {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /*
+    Keep normal button/link interactions responsive.
+  */
+  button,
+  a {
+    transition:
+      transform 180ms ease,
+      background-color 180ms ease,
+      border-color 180ms ease,
+      color 180ms ease,
+      box-shadow 180ms ease,
+      opacity 180ms ease;
+  }
+
+  button:active,
+  a:active {
+    transform: scale(0.98);
+  }
+
+  ::selection {
+    background: #7c3aed;
+    color: #ffffff;
+  }
+}
+
+/* --------------------------------------------------
+   Budget Go utility styles
+-------------------------------------------------- */
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-pretty {
+    text-wrap: pretty;
+  }
+
+  .bg-brand-gradient {
+    background:
+      radial-gradient(
+        circle at 15% 20%,
+        rgba(124, 58, 237, 0.18),
+        transparent 32%
+      ),
+      radial-gradient(
+        circle at 85% 10%,
+        rgba(167, 139, 250, 0.12),
+        transparent 28%
+      ),
+      var(--background);
+  }
+
+  .bg-purple-glow {
+    background:
+      radial-gradient(
+        circle at center,
+        rgba(124, 58, 237, 0.16),
+        transparent 65%
+      );
+  }
+
+  .soft-shadow {
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.04),
+      0 8px 30px rgba(0, 0, 0, 0.06);
+  }
+
+  .soft-shadow-lg {
+    box-shadow:
+      0 4px 10px rgba(0, 0, 0, 0.04),
+      0 20px 50px rgba(0, 0, 0, 0.08);
+  }
+
+  .purple-shadow {
+    box-shadow:
+      0 4px 12px rgba(124, 58, 237, 0.12),
+      0 12px 30px rgba(124, 58, 237, 0.08);
+  }
+
+  .interactive-card {
+    transition:
+      transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 220ms ease,
+      border-color 220ms ease,
+      background-color 400ms ease;
+  }
+
+  .interactive-card:hover {
+    transform: translateY(-4px);
+
+    box-shadow:
+      0 8px 20px rgba(0, 0, 0, 0.06),
+      0 20px 45px rgba(0, 0, 0, 0.08);
+  }
+
+  .interactive-card:active {
+    transform: translateY(-1px) scale(0.995);
+  }
+
+  .hover-lift {
+    transition:
+      transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 200ms ease;
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-3px);
+  }
+
+  .hover-scale {
+    transition:
+      transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .hover-scale:hover {
+    transform: scale(1.025);
+  }
+
+  .purple-focus {
+    transition:
+      border-color 180ms ease,
+      box-shadow 180ms ease;
+  }
+
+  .purple-focus:focus-within {
+    border-color: #7c3aed;
+
+    box-shadow:
+      0 0 0 3px rgba(124, 58, 237, 0.1),
+      0 4px 15px rgba(124, 58, 237, 0.06);
+  }
+}
+
+/* --------------------------------------------------
+   Loading animations
+-------------------------------------------------- */
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--muted) 25%,
+    color-mix(in srgb, var(--muted) 70%, white) 50%,
+    var(--muted) 75%
+  );
+
+  background-size: 1000px 100%;
+  animation: shimmer 1.8s infinite linear;
+}
+
+/* --------------------------------------------------
+   Page entrance animation
+-------------------------------------------------- */
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation:
+    fade-up 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* --------------------------------------------------
+   Product animations
+-------------------------------------------------- */
+
+@keyframes product-enter {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-product-enter {
+  animation:
+    product-enter 450ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.product-image {
+  transition:
+    transform 350ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 250ms ease;
+}
+
+.product-card:hover .product-image {
+  transform: scale(1.05);
+}
+
+/* --------------------------------------------------
+   Cart animation
+-------------------------------------------------- */
+
+@keyframes cart-pop {
+  0% {
+    transform: scale(1);
+  }
+
+  40% {
+    transform: scale(1.12);
+  }
+
+  70% {
+    transform: scale(0.96);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-cart-pop {
+  animation:
+    cart-pop 350ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* --------------------------------------------------
+   Floating / subtle motion
+-------------------------------------------------- */
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+/* --------------------------------------------------
+   Purple accent line
+-------------------------------------------------- */
+
+.brand-accent-line {
+  position: relative;
+}
+
+.brand-accent-line::after {
+  content: "";
+
+  position: absolute;
+  left: 0;
+  bottom: -6px;
+
+  width: 32px;
+  height: 3px;
+
+  border-radius: 999px;
+  background: #7c3aed;
+}
+
+/* --------------------------------------------------
+   Scrollbar
+-------------------------------------------------- */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d4d4d8;
+  border-radius: 999px;
+
+  transition: background-color 300ms ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1aa;
+}
+
+/* Dark scrollbar */
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #3f3f46;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #52525b;
+}
+
+/* --------------------------------------------------
+   Theme transition helper
+-------------------------------------------------- */
+
+/*
+  next-themes changes the class on <html>.
+
+  This gives theme-aware surfaces a smooth transition
+  when the class changes from light to dark or dark to light.
+*/
+
+html,
+html body {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+/*
+  Prevent images and media from getting a strange
+  fade during theme changes.
+*/
+img,
+video {
+  transition:
+    opacity 250ms ease,
+    transform 250ms ease;
+}
+
+/*
+  SVG icons should animate through their own classes
+  rather than inheriting a global transition.
+*/
+svg {
+  transition:
+    opacity 250ms ease,
+    transform 250ms ease;
+}
+
+/* --------------------------------------------------
+   Reduced motion accessibility
+-------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+/* --------------------------------------------------
+   Theme switch animation
+-------------------------------------------------- */
+
+@keyframes theme-fade {
+  0% {
+    opacity: 0.92;
+    transform: scale(0.995);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Animate the page whenever the theme class changes */
+html.theme-changing body {
+  animation: theme-fade 300ms ease-out;
+}
+
+/* Smooth theme color transitions */
+html,
+body {
+  transition:
+    background-color 300ms ease,
+    color 300ms ease;
+}
+
+/* Elements that use theme variables */
+body,
+header,
+main,
+section,
+aside,
+footer,
+nav,
+button,
+a,
+input,
+textarea,
+select {
+  transition:
+    background-color 300ms ease,
+    color 300ms ease,
+    border-color 300ms ease,
+    box-shadow 300ms ease;
+}
+
+/* Don't apply theme transitions to images/media */
+img,
+video {
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+
+/* Respect reduced-motion settings */
+@media (prefers-reduced-motion: reduce) {
+  html,
+  body,
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
   }
 }
