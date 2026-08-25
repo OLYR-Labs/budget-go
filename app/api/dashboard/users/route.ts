@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-const MANAGED_ROLES = ["BRANCH_ADMIN", "BRANCH_STAFF"] as const;
+const MANAGED_ROLES = ["BRANCH_ADMIN", "BRANCH_STAFF", "DELIVERY_STAFF"] as const;
 type ManagedRole = (typeof MANAGED_ROLES)[number];
 
 export async function POST(request: Request) {
@@ -19,6 +19,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const name = typeof body.name === "string" ? body.name.trim() : "";
     const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+    const phone = typeof body.phone === "string" ? body.phone.trim() : "";
     const password = typeof body.password === "string" ? body.password : "";
     const role = body.role as ManagedRole;
     const branchId = typeof body.branchId === "string" ? body.branchId : "";
@@ -47,10 +48,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "A user with this email already exists." }, { status: 409 });
     }
 
-    // Better Auth's createUser endpoint only accepts its built-in
-    // "user" / "admin" roles. Branch roles are application-level roles,
-    // so create the account first and assign the Prisma role immediately
-    // afterward inside our transaction.
     const created = await auth.api.createUser({
       headers: requestHeaders,
       body: {
@@ -70,13 +67,15 @@ export async function POST(request: Request) {
       await prisma.$transaction(async (tx) => {
         await tx.user.update({
           where: { id: userId },
-          data: { role },
+          data: { role, phone: phone || null },
         });
 
         if (role === "BRANCH_ADMIN") {
           await tx.branchAdmin.create({ data: { userId, branchId } });
-        } else {
+        } else if (role === "BRANCH_STAFF") {
           await tx.branchStaff.create({ data: { userId, branchId } });
+        } else {
+          await tx.deliveryStaff.create({ data: { userId, branchId, isActive: true } });
         }
       });
     } catch (relationError) {
@@ -89,6 +88,7 @@ export async function POST(request: Request) {
         id: userId,
         name,
         email,
+        phone: phone || null,
         role,
         branch: { id: branch.id, name: branch.name, code: branch.code },
       },
