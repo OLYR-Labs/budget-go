@@ -11,7 +11,7 @@ async function main() {
   const branches = [
     { name: "Horana", code: "HOR", latitude: 6.7156, longitude: 80.0626 },
     { name: "Ingiriya", code: "ING", latitude: 6.7428, longitude: 80.1770 },
-    { name: "Bandaragama", code: "BAN", latitude: 6.7151, longitude: 80.9850 },
+    { name: "Bandaragama", code: "BAN", latitude: 6.7145129, longitude: 79.9889673 },
     { name: "Kesbewa", code: "KES", latitude: 6.7953, longitude: 79.9383 },
     { name: "Piliyandala", code: "PIL", latitude: 6.8015, longitude: 79.9227 },
     { name: "Panadura", code: "PAN", latitude: 6.7132, longitude: 79.9042 },
@@ -32,101 +32,35 @@ async function main() {
     });
   }
 
-  const beverages = await prisma.category.upsert({
-    where: { name: "Beverages" },
-    update: {},
-    create: { name: "Beverages" },
-  });
-  const groceries = await prisma.category.upsert({
-    where: { name: "Groceries" },
-    update: {},
-    create: { name: "Groceries" },
-  });
-  const snacks = await prisma.category.upsert({
-    where: { name: "Snacks" },
-    update: {},
-    create: { name: "Snacks" },
-  });
+  const beverages = await prisma.category.upsert({ where: { name: "Beverages" }, update: {}, create: { name: "Beverages" } });
+  const groceries = await prisma.category.upsert({ where: { name: "Groceries" }, update: {}, create: { name: "Groceries" } });
+  const snacks = await prisma.category.upsert({ where: { name: "Snacks" }, update: {}, create: { name: "Snacks" } });
 
   const products = [
-    {
-      sku: "DEMO-COKE-1500",
-      name: "Coca-Cola 1.5L",
-      description: "Coca-Cola soft drink 1.5L bottle.",
-      categoryId: beverages.id,
-      price: 420,
-      stock: 25,
-    },
-    {
-      sku: "DEMO-MILK-1000",
-      name: "Full Cream Milk 1L",
-      description: "Fresh full cream milk.",
-      categoryId: groceries.id,
-      price: 520,
-      stock: 20,
-    },
-    {
-      sku: "DEMO-RICE-5000",
-      name: "White Rice 5kg",
-      description: "Premium white rice.",
-      categoryId: groceries.id,
-      price: 1450,
-      stock: 20,
-    },
-    {
-      sku: "DEMO-BISC-200",
-      name: "Chocolate Cream Biscuits",
-      description: "Chocolate cream biscuits.",
-      categoryId: snacks.id,
-      price: 280,
-      stock: 20,
-    },
+    { sku: "DEMO-COKE-1500", name: "Coca-Cola 1.5L", description: "Coca-Cola soft drink 1.5L bottle.", categoryId: beverages.id, price: 420, stock: 25 },
+    { sku: "DEMO-MILK-1000", name: "Full Cream Milk 1L", description: "Fresh full cream milk.", categoryId: groceries.id, price: 520, stock: 20 },
+    { sku: "DEMO-RICE-5000", name: "White Rice 5kg", description: "Premium white rice.", categoryId: groceries.id, price: 1450, stock: 20 },
+    { sku: "DEMO-BISC-200", name: "Chocolate Cream Biscuits", description: "Chocolate cream biscuits.", categoryId: snacks.id, price: 280, stock: 20 },
   ];
 
   const createdProducts = [];
   for (const product of products) {
     const created = await prisma.product.upsert({
       where: { sku: product.sku },
-      update: {
-        name: product.name,
-        description: product.description,
-        categoryId: product.categoryId,
-        isActive: true,
-      },
-      create: {
-        sku: product.sku,
-        name: product.name,
-        description: product.description,
-        categoryId: product.categoryId,
-      },
+      update: { name: product.name, description: product.description, categoryId: product.categoryId, isActive: true },
+      create: { sku: product.sku, name: product.name, description: product.description, categoryId: product.categoryId },
     });
     createdProducts.push({ ...created, price: product.price, stock: product.stock });
   }
 
-  const activeBranches = await prisma.branch.findMany({
-    where: { isActive: true },
-  });
+  const activeBranches = await prisma.branch.findMany({ where: { isActive: true } });
 
   for (const branch of activeBranches) {
     for (const product of createdProducts) {
       await prisma.branchInventory.upsert({
-        where: {
-          branchId_productId: {
-            branchId: branch.id,
-            productId: product.id,
-          },
-        },
-        update: {
-          price: product.price,
-          isActive: true,
-        },
-        create: {
-          branchId: branch.id,
-          productId: product.id,
-          price: product.price,
-          stock: product.stock,
-          isActive: true,
-        },
+        where: { branchId_productId: { branchId: branch.id, productId: product.id } },
+        update: { price: product.price, isActive: true },
+        create: { branchId: branch.id, productId: product.id, price: product.price, stock: product.stock, isActive: true },
       });
     }
   }
