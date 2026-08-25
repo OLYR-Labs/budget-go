@@ -15,6 +15,9 @@ self.addEventListener("push", (event) => {
     data: { url: data.url || "/" },
     tag: data.tag || `budget-go-${Date.now()}`,
     renotify: true,
+    requireInteraction: true,
+    timestamp: Date.now(),
+    vibrate: [200, 100, 200],
   };
 
   event.waitUntil(self.registration.showNotification(title, options));
@@ -25,10 +28,10 @@ self.addEventListener("notificationclick", (event) => {
   const targetUrl = new URL(event.notification.data?.url || "/", self.location.origin).href;
 
   event.waitUntil(
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(async (clients) => {
       const existing = clients.find((client) => "focus" in client);
       if (existing) {
-        existing.navigate(targetUrl);
+        await existing.navigate(targetUrl);
         return existing.focus();
       }
       return self.clients.openWindow(targetUrl);
