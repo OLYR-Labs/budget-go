@@ -22,15 +22,11 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  // Branch-level relationships
   branchAdmin   BranchAdmin?
   branchStaff   BranchStaff?
   deliveryStaff DeliveryStaff?
-
-  // Orders
   orders        Order[]
 
-  // Better Auth
   sessions      Session[]
   accounts      Account[]
 }
@@ -73,7 +69,7 @@ model Account {
 }
 
 model Verification {
-  id         String   @id
+  id         String   @id @default(cuid())
   identifier String
   value      String
   expiresAt  DateTime
@@ -261,6 +257,7 @@ enum UserRole {
 
 enum OrderStatus {
   PENDING
+  ASSIGNED
   CONFIRMED
   PREPARING
   READY_FOR_PICKUP
