@@ -7,10 +7,7 @@ import { OrderStatus } from "@/lib/generated/prisma/client";
 
 type RouteContext = { params: Promise<{ orderId: string }> };
 
-type RequestBody = {
-  status?: OrderStatus;
-  paymentCollected?: boolean;
-};
+type RequestBody = { status?: OrderStatus };
 
 export async function PATCH(request: Request, { params }: RouteContext) {
   try {
@@ -54,13 +51,6 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     const expectedPrevious = body.status === OrderStatus.OUT_FOR_DELIVERY ? OrderStatus.ASSIGNED : OrderStatus.OUT_FOR_DELIVERY;
     if (order.status !== expectedPrevious) {
       return NextResponse.json({ error: `Order must be ${expectedPrevious.replaceAll("_", " ")} before it can move to ${body.status.replaceAll("_", " ")}.` }, { status: 409 });
-    }
-
-    if (body.status === OrderStatus.DELIVERED && order.paymentStatus !== "PAID" && body.paymentCollected !== true) {
-      return NextResponse.json(
-        { error: `COD payment of LKR ${Number(order.total).toLocaleString("en-LK")} must be collected before completing this order. Confirm that payment was collected and try again.` },
-        { status: 400 },
-      );
     }
 
     const updated = await prisma.$transaction(async (tx) => {
