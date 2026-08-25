@@ -1,13 +1,14 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 import {
+  LogIn,
   MapPin,
   Menu,
   Search,
   ShoppingCart,
-  UserRound,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -95,15 +96,17 @@ export default function Header({
             {/* Theme */}
             <ThemeToggle />
 
-            {/* Account */}
+            {/* Staff login */}
             <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="hidden rounded-xl sm:inline-flex"
-              aria-label="Account"
+              asChild
+              variant="outline"
+              size="sm"
+              className="hidden rounded-xl border-border/80 bg-background px-3 shadow-sm hover:border-accent/40 hover:bg-accent/5 sm:inline-flex"
             >
-              <UserRound className="h-[18px] w-[18px]" />
+              <Link href="/login">
+                <LogIn className="mr-2 h-4 w-4" />
+                <span>Staff Login</span>
+              </Link>
             </Button>
 
             {/* Cart */}
@@ -133,6 +136,19 @@ export default function Header({
                   0
                 </span>
               )}
+            </Button>
+
+            {/* Mobile staff login */}
+            <Button
+              asChild
+              variant="ghost"
+              size="icon"
+              className="rounded-xl sm:hidden"
+              aria-label="Staff login"
+            >
+              <Link href="/login">
+                <LogIn className="h-5 w-5" />
+              </Link>
             </Button>
 
             {/* Mobile menu */}
