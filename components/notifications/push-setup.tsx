@@ -9,6 +9,36 @@ function urlBase64ToUint8Array(value: string) {
   return Uint8Array.from([...raw].map((char) => char.charCodeAt(0)));
 }
 
+async function registerPushSubscription(publicKey: string) {
+  const registration = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+  await navigator.serviceWorker.ready;
+  await registration.update().catch(() => undefined);
+
+  let subscription = await registration.pushManager.getSubscription();
+  if (!subscription) {
+    subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey),
+    });
+  }
+
+  const json = subscription.toJSON();
+  if (!json.endpoint || !json.keys?.p256dh || !json.keys.auth) {
+    throw new Error("The browser returned an incomplete push subscription.");
+  }
+
+  const response = await fetch("/api/notifications/subscribe", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ endpoint: json.endpoint, keys: json.keys }),
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => null) as { error?: string } | null;
+    throw new Error(data?.error || "Could not register this device for notifications.");
+  }
+}
+
 export function PushSetup() {
   const [visible, setVisible] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -18,13 +48,33 @@ export function PushSetup() {
     if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) return;
 
     let cancelled = false;
-    fetch("/api/notifications/config")
-      .then((response) => response.ok ? response.json() : null)
-      .then((data) => {
-        if (!cancelled && data?.enabled) setVisible(Notification.permission !== "granted");
-      })
-      .catch(() => undefined);
 
+    async function initialise() {
+      try {
+        const response = await fetch("/api/notifications/config", { cache: "no-store" });
+        if (!response.ok) return;
+        const config = await response.json() as { enabled?: boolean; publicKey?: string | null };
+        if (!config.enabled || !config.publicKey || cancelled) return;
+
+        // Keep the service worker installed even before permission is granted.
+        const registration = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+        await navigator.serviceWorker.ready;
+        await registration.update().catch(() => undefined);
+
+        if (Notification.permission === "granted") {
+          // Re-sync an existing subscription on every authenticated page load.
+          // This keeps the server-side subscription tied to the current user even
+          // when the dashboard itself is no longer open.
+          await registerPushSubscription(config.publicKey);
+        } else if (!cancelled) {
+          setVisible(true);
+        }
+      } catch (error) {
+        if (!cancelled) console.error("Push notification setup failed:", error);
+      }
+    }
+
+    void initialise();
     return () => { cancelled = true; };
   }, []);
 
@@ -38,24 +88,11 @@ export function PushSetup() {
         return;
       }
 
-      const config = await fetch("/api/notifications/config").then((response) => response.json());
+      const response = await fetch("/api/notifications/config", { cache: "no-store" });
+      const config = await response.json() as { enabled?: boolean; publicKey?: string | null };
       if (!config.enabled || !config.publicKey) throw new Error("Push notifications are not configured yet.");
 
-      const registration = await navigator.serviceWorker.register("/sw.js");
-      const existing = await registration.pushManager.getSubscription();
-      const subscription = existing ?? await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(config.publicKey),
-      });
-
-      const json = subscription.toJSON();
-      const response = await fetch("/api/notifications/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ endpoint: json.endpoint, keys: json.keys }),
-      });
-
-      if (!response.ok) throw new Error("Could not register this device.");
+      await registerPushSubscription(config.publicKey);
       setVisible(false);
       setMessage("Notifications enabled.");
     } catch (error) {
