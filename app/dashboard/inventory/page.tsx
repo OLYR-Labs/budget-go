@@ -35,6 +35,7 @@ export default async function InventoryDashboardPage() {
   const units = inventory.reduce((sum, item) => sum + item.stock, 0);
   const value = inventory.reduce((sum, item) => sum + Number(item.price) * item.stock, 0);
   const lowStock = inventory.filter((item) => item.stock <= 5).length;
+  const isGlobal = context.scope.type === "GLOBAL";
 
   return (
     <main className="min-h-screen bg-background px-5 py-8 text-foreground sm:px-8 lg:px-10">
@@ -44,9 +45,9 @@ export default async function InventoryDashboardPage() {
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-accent">Inventory operations</p>
             <h1 className="mt-2 text-3xl font-black tracking-tight">Inventory</h1>
-            <p className="mt-2 text-sm text-muted-foreground">{context.scope.type === "GLOBAL" ? "Global branch inventory" : `Inventory for ${context.branch.name}`}</p>
+            <p className="mt-2 text-sm text-muted-foreground">{isGlobal ? "Global branch inventory" : `Inventory for ${context.branch.name}`}</p>
           </div>
-          <a href="/dashboard/branch" className="inline-flex h-10 items-center justify-center rounded-xl border border-border px-4 text-sm font-semibold hover:bg-muted">Open branch inventory tools</a>
+          {!isGlobal && <a href="/dashboard/branch" className="inline-flex h-10 items-center justify-center rounded-xl border border-border px-4 text-sm font-semibold hover:bg-muted">Open branch inventory tools</a>}
         </div>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
