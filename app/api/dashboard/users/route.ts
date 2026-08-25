@@ -47,13 +47,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "A user with this email already exists." }, { status: 409 });
     }
 
+    // Better Auth's createUser endpoint only accepts its built-in
+    // "user" / "admin" roles. Branch roles are application-level roles,
+    // so create the account first and assign the Prisma role immediately
+    // afterward inside our transaction.
     const created = await auth.api.createUser({
       headers: requestHeaders,
       body: {
         name,
         email,
         password,
-        role,
       },
     });
 
