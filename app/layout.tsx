@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 import { ThemeProvider } from "@/components/theme-provider";
+import { NotificationBell } from "@/components/notifications/notification-bell";
+import { PushSetup } from "@/components/notifications/push-setup";
 
 export const metadata: Metadata = {
   title: {
@@ -11,6 +13,7 @@ export const metadata: Metadata = {
   description:
     "Shop everyday products from your nearest Budget Go branch and get them delivered to your door.",
   applicationName: "Budget Go",
+  manifest: "/manifest.webmanifest",
   icons: {
     icon: "/favicon.png",
     shortcut: "/favicon.png",
@@ -33,6 +36,10 @@ export default function RootLayout({
           disableTransitionOnChange={false}
         >
           {children}
+          <div className="fixed right-4 top-4 z-50">
+            <NotificationBell />
+          </div>
+          <PushSetup />
         </ThemeProvider>
       </body>
     </html>

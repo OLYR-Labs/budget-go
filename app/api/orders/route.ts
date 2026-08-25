@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 import { calculateDeliveryFee, haversineDistanceKm } from "@/lib/delivery";
+import { notifyUsers } from "@/lib/notifications";
 
 type OrderItemInput = { id: string; quantity: number };
 
@@ -143,6 +144,25 @@ export async function POST(request: Request) {
       }
 
       return createdOrder;
+    });
+
+    const recipients = await prisma.user.findMany({
+      where: {
+        OR: [
+          { branchAdmin: { branchId: branch.id } },
+          { branchStaff: { branchId: branch.id } },
+        ],
+      },
+      select: { id: true },
+    });
+
+    await notifyUsers({
+      userIds: recipients.map((user) => user.id),
+      type: "NEW_ORDER",
+      title: "New order received",
+      body: `${order.orderNumber} • LKR ${Number(order.total).toFixed(2)} COD`,
+      url: `/dashboard/orders/${order.id}`,
+      orderId: order.id,
     });
 
     return NextResponse.json({

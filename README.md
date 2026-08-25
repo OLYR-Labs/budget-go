@@ -18,6 +18,30 @@ Budget Go is a multi-branch delivery storefront and operations dashboard built w
 
 The demo seed contains seven branches: Horana, Ingiriya, Bandaragama, Kesbewa, Piliyandala, Panadura and Kalutara. Each active branch receives the seeded demo products in `prisma/seed.ts`.
 
+## Push notifications
+
+Budget Go uses standard Web Push for the free demo. Branch managers/staff receive new-order notifications and delivery staff receive assignment notifications. Notifications are also persisted in PostgreSQL and shown in the in-app notification bell.
+
+Generate a VAPID key pair once:
+
+```bash
+npx web-push generate-vapid-keys
+```
+
+Add the generated values to `.env`:
+
+```env
+VAPID_SUBJECT="mailto:hello@budgetgo.com"
+NEXT_PUBLIC_VAPID_PUBLIC_KEY="your-public-key"
+VAPID_PRIVATE_KEY="your-private-key"
+```
+
+`VAPID_PRIVATE_KEY` must remain server-only. Never expose it with a `NEXT_PUBLIC_` prefix and never commit it.
+
+The browser will show **Enable notifications** to authenticated branch/admin/delivery users when push is configured. The user must grant notification permission on each device/browser they want to receive alerts on.
+
+For local development, use `http://localhost` or another secure HTTPS origin. Production deployments must use HTTPS for browser push.
+
 ## Development
 
 ```bash
