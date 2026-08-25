@@ -45,7 +45,7 @@ export default async function InventoryDashboardPage() {
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-accent">Inventory operations</p>
             <h1 className="mt-2 text-3xl font-black tracking-tight">Inventory</h1>
-            <p className="mt-2 text-sm text-muted-foreground">{isGlobal ? "Global branch inventory" : `Inventory for ${context.branch.name}`}</p>
+            <p className="mt-2 text-sm text-muted-foreground">{isGlobal ? "Global branch inventory" : `Inventory for ${context.branch?.name ?? "assigned branch"}`}</p>
           </div>
           {!isGlobal && <a href="/dashboard/branch" className="inline-flex h-10 items-center justify-center rounded-xl border border-border px-4 text-sm font-semibold hover:bg-muted">Open branch inventory tools</a>}
         </div>
