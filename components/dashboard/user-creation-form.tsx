@@ -1,19 +1,28 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 type Branch = { id: string; name: string; code: string };
-type Role = "BRANCH_ADMIN" | "BRANCH_STAFF";
+type Role = "BRANCH_ADMIN" | "BRANCH_STAFF" | "DELIVERY_STAFF";
 
 export default function UserCreationForm({ branches }: { branches: Branch[] }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const requestedType = searchParams.get("type");
+  const defaultRole: Role = requestedType === "delivery" ? "DELIVERY_STAFF" : "BRANCH_ADMIN";
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<Role>("BRANCH_ADMIN");
+  const [role, setRole] = useState<Role>(defaultRole);
   const [branchId, setBranchId] = useState(branches[0]?.id ?? "");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+
+  const isDelivery = role === "DELIVERY_STAFF";
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -25,7 +34,7 @@ export default function UserCreationForm({ branches }: { branches: Branch[] }) {
       const response = await fetch("/api/dashboard/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, role, branchId }),
+        body: JSON.stringify({ name, email, phone, password, role, branchId }),
       });
       const data = await response.json();
 
@@ -34,7 +43,9 @@ export default function UserCreationForm({ branches }: { branches: Branch[] }) {
       setMessage(`Account created for ${data.user.name}. They can now sign in with their email and password.`);
       setName("");
       setEmail("");
+      setPhone("");
       setPassword("");
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create account.");
     } finally {
@@ -55,7 +66,12 @@ export default function UserCreationForm({ branches }: { branches: Branch[] }) {
 
         <label className="grid gap-2 text-sm font-semibold">
           Email
-          <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="h-11 rounded-xl border border-border bg-background px-4 outline-none focus:border-accent/50" placeholder="kasun@olyr.com" />
+          <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="h-11 rounded-xl border border-border bg-background px-4 outline-none focus:border-accent/50" placeholder="staff@olyr.com" />
+        </label>
+
+        <label className="grid gap-2 text-sm font-semibold">
+          Phone
+          <input value={phone} onChange={(e) => setPhone(e.target.value)} className="h-11 rounded-xl border border-border bg-background px-4 outline-none focus:border-accent/50" placeholder="077 123 4567" />
         </label>
 
         <label className="grid gap-2 text-sm font-semibold">
@@ -63,11 +79,12 @@ export default function UserCreationForm({ branches }: { branches: Branch[] }) {
           <input required minLength={8} type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="h-11 rounded-xl border border-border bg-background px-4 outline-none focus:border-accent/50" placeholder="At least 8 characters" />
         </label>
 
-        <label className="grid gap-2 text-sm font-semibold">
+        <label className="grid gap-2 text-sm font-semibold sm:col-span-2">
           Account type
           <select value={role} onChange={(e) => setRole(e.target.value as Role)} className="h-11 rounded-xl border border-border bg-background px-4 outline-none focus:border-accent/50">
             <option value="BRANCH_ADMIN">Branch Manager</option>
             <option value="BRANCH_STAFF">Branch Staff</option>
+            <option value="DELIVERY_STAFF">Delivery Staff</option>
           </select>
         </label>
 
@@ -79,8 +96,12 @@ export default function UserCreationForm({ branches }: { branches: Branch[] }) {
         </label>
       </div>
 
-      <div className="mt-7 flex items-center justify-between gap-4 border-t border-border pt-6">
-        <p className="max-w-xl text-xs text-muted-foreground">Only administrators can create these accounts. Delivery staff are intentionally excluded from dashboard account creation.</p>
+      <div className="mt-7 flex flex-col gap-4 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
+        <p className="max-w-xl text-xs text-muted-foreground">
+          {isDelivery
+            ? "Delivery staff belong to one branch and can later use the dedicated delivery interface to receive, navigate, and complete assigned orders."
+            : "Branch Managers and Branch Staff are assigned to one active branch. Only administrators can create these accounts."}
+        </p>
         <button disabled={busy || !branches.length} className="h-11 rounded-xl bg-primary px-5 text-sm font-bold text-primary-foreground disabled:opacity-50">
           {busy ? "Creating..." : "Create account"}
         </button>
