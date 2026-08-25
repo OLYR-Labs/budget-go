@@ -27,7 +27,8 @@ async function getRoadRoute(fromLatitude: number, fromLongitude: number, toLatit
 
   const data = (await response.json()) as RouteResponse;
   const route = data.routes?.[0];
-  if (data.code !== "Ok" || !route || !Number.isFinite(route.distance)) {
+  const distance = route?.distance;
+  if (data.code !== "Ok" || !route || typeof distance !== "number" || !Number.isFinite(distance)) {
     throw new Error("No drivable route was found for this location.");
   }
 
@@ -35,7 +36,7 @@ async function getRoadRoute(fromLatitude: number, fromLongitude: number, toLatit
     .filter((coordinate) => Array.isArray(coordinate) && coordinate.length >= 2 && Number.isFinite(coordinate[0]) && Number.isFinite(coordinate[1]))
     .map(([longitude, latitude]) => [latitude, longitude] as [number, number]);
 
-  return { distanceKm: route.distance / 1000, routeCoordinates };
+  return { distanceKm: distance / 1000, routeCoordinates };
 }
 
 export async function POST(request: Request) {
