@@ -160,6 +160,7 @@ model Product {
   name        String
   description String?
   sku         String            @unique
+  barcode     String?           @unique
   imageUrl    String?
   categoryId  String
   isActive    Boolean           @default(true)
@@ -173,6 +174,7 @@ model Product {
 
   @@index([categoryId])
   @@index([isActive])
+  @@index([barcode])
 }
 
 model BranchInventory {
@@ -201,6 +203,7 @@ model Order {
   deliveryStaffId    String?
   status             OrderStatus   @default(PENDING)
   paymentStatus      PaymentStatus @default(PENDING)
+  paidAt             DateTime?
   subtotal           Decimal       @db.Decimal(10, 2)
   deliveryFee        Decimal       @db.Decimal(10, 2)
   total              Decimal       @db.Decimal(10, 2)
