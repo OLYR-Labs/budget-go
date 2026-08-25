@@ -7,6 +7,11 @@ import { OrderStatus } from "@/lib/generated/prisma/client";
 
 type RouteContext = { params: Promise<{ orderId: string }> };
 
+type RequestBody = {
+  status?: OrderStatus;
+  paymentCollected?: boolean;
+};
+
 export async function PATCH(request: Request, { params }: RouteContext) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
@@ -17,9 +22,9 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     const { orderId } = await params;
     if (!orderId?.trim()) return NextResponse.json({ error: "Order ID is required." }, { status: 400 });
 
-    let body: { status?: OrderStatus };
+    let body: RequestBody;
     try {
-      body = (await request.json()) as { status?: OrderStatus };
+      body = (await request.json()) as RequestBody;
     } catch {
       return NextResponse.json({ error: "Invalid JSON request body." }, { status: 400 });
     }
@@ -39,7 +44,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
 
     const order = await prisma.order.findFirst({
       where: { id: orderId.trim(), deliveryStaffId: deliveryStaff.id, branchId: deliveryStaff.branchId },
-      select: { id: true, status: true, orderNumber: true },
+      select: { id: true, status: true, orderNumber: true, paymentStatus: true, total: true },
     });
 
     if (!order) {
@@ -51,10 +56,30 @@ export async function PATCH(request: Request, { params }: RouteContext) {
       return NextResponse.json({ error: `Order must be ${expectedPrevious.replaceAll("_", " ")} before it can move to ${body.status.replaceAll("_", " ")}.` }, { status: 409 });
     }
 
-    const updated = await prisma.order.update({
-      where: { id: order.id },
-      data: { status: body.status },
-      select: { id: true, orderNumber: true, status: true, updatedAt: true },
+    if (body.status === OrderStatus.DELIVERED) {
+      if (order.paymentStatus === "PENDING" && body.paymentCollected !== true) {
+        return NextResponse.json(
+          { error: `COD payment of LKR ${Number(order.total).toLocaleString("en-LK")} must be collected before completing this order.` },
+          { status: 400 },
+        );
+      }
+
+      if (order.paymentStatus !== "PAID" && body.paymentCollected !== true) {
+        return NextResponse.json({ error: "Payment must be confirmed before delivery can be completed." }, { status: 400 });
+      }
+    }
+
+    const updated = await prisma.$transaction(async (tx) => {
+      return tx.order.update({
+        where: { id: order.id },
+        data: {
+          status: body.status,
+          ...(body.status === OrderStatus.DELIVERED && body.paymentCollected === true
+            ? { paymentStatus: "PAID", paidAt: new Date() }
+            : {}),
+        },
+        select: { id: true, orderNumber: true, status: true, paymentStatus: true, paidAt: true, updatedAt: true },
+      });
     });
 
     return NextResponse.json({ success: true, order: updated });
