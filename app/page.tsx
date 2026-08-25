@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Check, MapPin, X } from "lucide-react";
 
 import Header from "@/components/home/header";
 import Hero from "@/components/home/hero";
@@ -65,7 +64,10 @@ export default function Home() {
 
       const savedId = window.localStorage.getItem(SELECTED_BRANCH_KEY);
       const savedBranch = data.find((branch: Branch) => branch.id === savedId);
-      const defaultBranch = savedBranch ?? data.find((branch: Branch) => branch.code === "ING") ?? data[0];
+      const defaultBranch =
+        savedBranch ??
+        data.find((branch: Branch) => branch.code === "ING") ??
+        data[0];
 
       if (defaultBranch) {
         setSelectedBranch(defaultBranch);
@@ -74,7 +76,9 @@ export default function Home() {
     } catch (loadError) {
       console.error("Failed to load branches:", loadError);
       setBranchError(
-        loadError instanceof Error ? loadError.message : "Unable to load branches.",
+        loadError instanceof Error
+          ? loadError.message
+          : "Unable to load branches.",
       );
     } finally {
       setBranchLoading(false);
@@ -93,7 +97,9 @@ export default function Home() {
       const data = await response.json().catch(() => null);
 
       if (!response.ok || !Array.isArray(data)) {
-        throw new Error(data?.error || `Failed to load products (${response.status}).`);
+        throw new Error(
+          data?.error || `Failed to load products (${response.status}).`,
+        );
       }
 
       setProducts(data);
@@ -101,7 +107,9 @@ export default function Home() {
       console.error("Failed to fetch products:", loadError);
       setProducts([]);
       setError(
-        loadError instanceof Error ? loadError.message : "Unable to load products right now.",
+        loadError instanceof Error
+          ? loadError.message
+          : "Unable to load products right now.",
       );
     } finally {
       setLoading(false);
@@ -161,36 +169,18 @@ export default function Home() {
       <Header
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        selectedBranch={selectedBranch?.name ?? (branchLoading ? "Loading..." : "Select branch")}
+        selectedBranch={
+          selectedBranch?.name ?? (branchLoading ? "Loading..." : "Select branch")
+        }
         onChangeLocation={() => setLocationOpen(true)}
       />
 
-      <Hero />
-
-      {selectedBranch && (
-        <div className="mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8">
-          <button
-            type="button"
-            onClick={() => setLocationOpen(true)}
-            className="flex w-full items-center justify-between gap-4 rounded-2xl border border-accent/15 bg-accent/5 px-4 py-3 text-left transition-colors hover:border-accent/30 hover:bg-accent/10"
-          >
-            <span className="flex min-w-0 items-center gap-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground">
-                <MapPin className="h-4 w-4" />
-              </span>
-              <span className="min-w-0">
-                <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-accent">
-                  Shopping from
-                </span>
-                <span className="block truncate text-sm font-bold">
-                  {selectedBranch.name}
-                </span>
-              </span>
-            </span>
-            <span className="shrink-0 text-xs font-bold text-accent">Change location</span>
-          </button>
-        </div>
-      )}
+      <Hero
+        selectedBranch={
+          selectedBranch?.name ?? (branchLoading ? "Loading..." : "Select branch")
+        }
+        onChangeLocation={() => setLocationOpen(true)}
+      />
 
       <div id="products">
         <ProductSection products={filteredProducts} loading={loading} />
@@ -231,7 +221,7 @@ export default function Home() {
                 className="flex h-9 w-9 items-center justify-center rounded-xl border border-border text-muted-foreground hover:bg-muted"
                 aria-label="Close branch selector"
               >
-                <X className="h-4 w-4" />
+                <span aria-hidden="true">×</span>
               </button>
             </div>
 
@@ -260,8 +250,14 @@ export default function Home() {
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex min-w-0 gap-3">
-                            <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${selected ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground"}`}>
-                              <MapPin className="h-4 w-4" />
+                            <span
+                              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                                selected
+                                  ? "bg-accent text-accent-foreground"
+                                  : "bg-muted text-muted-foreground"
+                              }`}
+                            >
+                              <span aria-hidden="true">📍</span>
                             </span>
                             <span className="min-w-0">
                               <span className="block text-sm font-black">{branch.name}</span>
@@ -273,7 +269,7 @@ export default function Home() {
                               </span>
                             </span>
                           </div>
-                          {selected && <Check className="h-5 w-5 shrink-0 text-accent" />}
+                          {selected && <span className="text-accent">✓</span>}
                         </div>
                       </button>
                     );
