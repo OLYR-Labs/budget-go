@@ -13,6 +13,7 @@ export const metadata: Metadata = {
   description:
     "Shop everyday products from your nearest Budget Go branch and get them delivered to your door.",
   applicationName: "Budget Go",
+  manifest: "/manifest.webmanifest",
   icons: {
     icon: "/favicon.png",
     shortcut: "/favicon.png",
