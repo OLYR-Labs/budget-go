@@ -13,6 +13,7 @@ type UpdateOrderRequest = {
 
 const STATUS_ORDER: OrderStatus[] = [
   OrderStatus.PENDING,
+  OrderStatus.ASSIGNED,
   OrderStatus.CONFIRMED,
   OrderStatus.PREPARING,
   OrderStatus.READY_FOR_PICKUP,
@@ -20,10 +21,7 @@ const STATUS_ORDER: OrderStatus[] = [
   OrderStatus.DELIVERED,
 ];
 
-const VALID_STATUSES = new Set<OrderStatus>([
-  ...STATUS_ORDER,
-  OrderStatus.CANCELLED,
-]);
+const VALID_STATUSES = new Set<OrderStatus>([...STATUS_ORDER, OrderStatus.CANCELLED]);
 
 function canTransitionStatus(current: OrderStatus, next: OrderStatus) {
   if (current === next) return true;
@@ -140,27 +138,15 @@ export async function GET(_request: Request, { params }: RouteContext) {
     const permissions = getDashboardPermissions(context.user.role);
 
     if (!permissions.canViewOperationalOrders && !permissions.canViewCompletedOrders) {
-      return NextResponse.json(
-        { error: "You do not have permission to view orders." },
-        { status: 403 },
-      );
+      return NextResponse.json({ error: "You do not have permission to view orders." }, { status: 403 });
     }
 
     const { orderId } = await params;
-    if (!orderId?.trim()) {
-      return NextResponse.json({ error: "Order ID is required." }, { status: 400 });
-    }
+    if (!orderId?.trim()) return NextResponse.json({ error: "Order ID is required." }, { status: 400 });
 
-    const order = await getOrder(
-      orderId.trim(),
-      context.scope.type === "GLOBAL" ? null : context.scope.branchId,
-    );
-
+    const order = await getOrder(orderId.trim(), context.scope.type === "GLOBAL" ? null : context.scope.branchId);
     if (!order) {
-      return NextResponse.json(
-        { error: "Order not found or you do not have access to this order." },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Order not found or you do not have access to this order." }, { status: 404 });
     }
 
     return NextResponse.json({ order: serializeOrder(order), scope: context.scope });
@@ -175,16 +161,11 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     const permissions = getDashboardPermissions(context.user.role);
 
     if (!permissions.canAssignOrders) {
-      return NextResponse.json(
-        { error: "You do not have permission to manage orders." },
-        { status: 403 },
-      );
+      return NextResponse.json({ error: "You do not have permission to manage orders." }, { status: 403 });
     }
 
     const { orderId } = await params;
-    if (!orderId?.trim()) {
-      return NextResponse.json({ error: "Order ID is required." }, { status: 400 });
-    }
+    if (!orderId?.trim()) return NextResponse.json({ error: "Order ID is required." }, { status: 400 });
 
     let body: UpdateOrderRequest;
     try {
@@ -197,10 +178,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     const hasDeliveryStaffUpdate = Object.prototype.hasOwnProperty.call(body, "deliveryStaffId");
 
     if (!hasStatusUpdate && !hasDeliveryStaffUpdate) {
-      return NextResponse.json(
-        { error: "Nothing to update. Provide a status or deliveryStaffId." },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Nothing to update. Provide a status or deliveryStaffId." }, { status: 400 });
     }
 
     const branchId = context.scope.type === "GLOBAL" ? null : context.scope.branchId;
@@ -210,22 +188,15 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     });
 
     if (!existingOrder) {
-      return NextResponse.json(
-        { error: "Order not found or you do not have access to this order." },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Order not found or you do not have access to this order." }, { status: 404 });
     }
 
     if (hasStatusUpdate) {
       if (typeof body.status !== "string" || !VALID_STATUSES.has(body.status)) {
         return NextResponse.json({ error: "Invalid order status." }, { status: 400 });
       }
-
       if (!canTransitionStatus(existingOrder.status, body.status)) {
-        return NextResponse.json(
-          { error: `Order cannot move from ${existingOrder.status} to ${body.status}.` },
-          { status: 409 },
-        );
+        return NextResponse.json({ error: `Order cannot move from ${existingOrder.status} to ${body.status}.` }, { status: 409 });
       }
     }
 
@@ -233,62 +204,50 @@ export async function PATCH(request: Request, { params }: RouteContext) {
 
     if (hasDeliveryStaffUpdate) {
       if (body.deliveryStaffId !== null && typeof body.deliveryStaffId !== "string") {
-        return NextResponse.json(
-          { error: "deliveryStaffId must be a valid ID or null." },
-          { status: 400 },
-        );
+        return NextResponse.json({ error: "deliveryStaffId must be a valid ID or null." }, { status: 400 });
       }
 
       if (body.deliveryStaffId === null) {
         deliveryStaffId = null;
       } else {
         const requestedStaffId = body.deliveryStaffId.trim();
-        if (!requestedStaffId) {
-          return NextResponse.json({ error: "Delivery staff ID cannot be empty." }, { status: 400 });
-        }
+        if (!requestedStaffId) return NextResponse.json({ error: "Delivery staff ID cannot be empty." }, { status: 400 });
 
         const staff = await prisma.deliveryStaff.findFirst({
-          where: {
-            id: requestedStaffId,
-            branchId: existingOrder.branchId,
-            isActive: true,
-          },
+          where: { id: requestedStaffId, branchId: existingOrder.branchId, isActive: true },
           select: { id: true },
         });
 
         if (!staff) {
           return NextResponse.json(
-            {
-              error:
-                "The selected delivery staff member is not active or does not belong to this branch.",
-            },
+            { error: "The selected delivery staff member is not active or does not belong to this branch." },
             { status: 409 },
           );
         }
-
         deliveryStaffId = staff.id;
       }
     }
 
-    const nextStatus = hasStatusUpdate ? body.status! : existingOrder.status;
-
-    if (
-      (nextStatus === OrderStatus.OUT_FOR_DELIVERY || nextStatus === OrderStatus.DELIVERED) &&
-      !deliveryStaffId
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            "A delivery staff member must be assigned before this order can move to the delivery stage.",
-        },
-        { status: 409 },
-      );
+    // Assigning a driver to a fresh order moves it into the explicit ASSIGNED stage.
+    // Removing the driver from an ASSIGNED order returns it to PENDING.
+    let nextStatus = hasStatusUpdate ? body.status! : existingOrder.status;
+    if (hasDeliveryStaffUpdate && !hasStatusUpdate) {
+      if (existingOrder.status === OrderStatus.PENDING && deliveryStaffId) nextStatus = OrderStatus.ASSIGNED;
+      if (existingOrder.status === OrderStatus.ASSIGNED && !deliveryStaffId) nextStatus = OrderStatus.PENDING;
     }
 
-    const isCancelling =
-      hasStatusUpdate &&
-      body.status === OrderStatus.CANCELLED &&
-      existingOrder.status !== OrderStatus.CANCELLED;
+    if (nextStatus !== existingOrder.status && !canTransitionStatus(existingOrder.status, nextStatus)) {
+      return NextResponse.json({ error: `Order cannot move from ${existingOrder.status} to ${nextStatus}.` }, { status: 409 });
+    }
+
+    if (
+      (nextStatus === OrderStatus.ASSIGNED || nextStatus === OrderStatus.OUT_FOR_DELIVERY || nextStatus === OrderStatus.DELIVERED) &&
+      !deliveryStaffId
+    ) {
+      return NextResponse.json({ error: "A delivery staff member must be assigned for this delivery stage." }, { status: 409 });
+    }
+
+    const isCancelling = hasStatusUpdate && body.status === OrderStatus.CANCELLED && existingOrder.status !== OrderStatus.CANCELLED;
 
     await prisma.$transaction(async (tx) => {
       if (isCancelling) {
@@ -299,18 +258,10 @@ export async function PATCH(request: Request, { params }: RouteContext) {
 
         for (const item of items) {
           const inventory = await tx.branchInventory.findUnique({
-            where: {
-              branchId_productId: {
-                branchId: existingOrder.branchId,
-                productId: item.productId,
-              },
-            },
+            where: { branchId_productId: { branchId: existingOrder.branchId, productId: item.productId } },
             select: { id: true },
           });
-
-          if (!inventory) {
-            throw new Error(`INVENTORY_NOT_FOUND:${item.productId}`);
-          }
+          if (!inventory) throw new Error(`INVENTORY_NOT_FOUND:${item.productId}`);
 
           await tx.branchInventory.update({
             where: { id: inventory.id },
@@ -322,16 +273,14 @@ export async function PATCH(request: Request, { params }: RouteContext) {
       await tx.order.update({
         where: { id: existingOrder.id },
         data: {
-          ...(hasStatusUpdate ? { status: body.status } : {}),
+          ...(nextStatus !== existingOrder.status ? { status: nextStatus } : {}),
           ...(hasDeliveryStaffUpdate ? { deliveryStaffId } : {}),
         },
       });
     });
 
     const updatedOrder = await getOrder(existingOrder.id, branchId);
-    if (!updatedOrder) {
-      return NextResponse.json({ error: "Updated order could not be loaded." }, { status: 500 });
-    }
+    if (!updatedOrder) return NextResponse.json({ error: "Updated order could not be loaded." }, { status: 500 });
 
     return NextResponse.json({
       success: true,
@@ -341,14 +290,10 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   } catch (error) {
     if (error instanceof Error && error.message.startsWith("INVENTORY_NOT_FOUND:")) {
       return NextResponse.json(
-        {
-          error:
-            "The order could not be cancelled because one of its inventory records no longer exists. No changes were made.",
-        },
+        { error: "The order could not be cancelled because one of its inventory records no longer exists. No changes were made." },
         { status: 409 },
       );
     }
-
     return handleDashboardError(error, "Failed to update dashboard order.");
   }
 }
@@ -356,9 +301,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
 function handleDashboardError(error: unknown, fallback: string) {
   const message = error instanceof Error ? error.message : "";
 
-  if (message === "You must be logged in to access the dashboard.") {
-    return NextResponse.json({ error: message }, { status: 401 });
-  }
+  if (message === "You must be logged in to access the dashboard.") return NextResponse.json({ error: message }, { status: 401 });
 
   if (
     message === "This account does not have dashboard access." ||
@@ -373,10 +316,7 @@ function handleDashboardError(error: unknown, fallback: string) {
   return NextResponse.json(
     {
       error: fallback,
-      details:
-        process.env.NODE_ENV === "development" && error instanceof Error
-          ? error.message
-          : undefined,
+      details: process.env.NODE_ENV === "development" && error instanceof Error ? error.message : undefined,
     },
     { status: 500 },
   );
