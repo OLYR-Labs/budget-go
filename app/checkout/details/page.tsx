@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Check, MapPin, Phone, ShoppingBag, User } from "lucide-react";
+import { ArrowLeft, Check, Phone, ShoppingBag, User } from "lucide-react";
 
 import LocationPicker from "@/components/checkout/location-picker";
 import { useCartStore } from "@/lib/cart-store";
@@ -99,6 +99,8 @@ export default function CheckoutDetailsPage() {
   useEffect(() => {
     if (!branch || !location) return;
 
+    const selectedBranch = branch;
+    const selectedLocation = location;
     const controller = new AbortController();
 
     async function calculateQuote() {
@@ -110,9 +112,9 @@ export default function CheckoutDetailsPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            branchId: branch.id,
-            latitude: location.latitude,
-            longitude: location.longitude,
+            branchId: selectedBranch.id,
+            latitude: selectedLocation.latitude,
+            longitude: selectedLocation.longitude,
           }),
           signal: controller.signal,
         });
