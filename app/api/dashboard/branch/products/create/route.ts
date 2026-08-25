@@ -14,11 +14,13 @@ export async function POST(request: Request) {
     const body = await request.json();
 
     const name = typeof body.name === "string" ? body.name.trim() : "";
+    const categoryName = typeof body.category === "string" ? body.category.trim() : "";
     const barcode = typeof body.barcode === "string" ? body.barcode.trim() : "";
     const price = Number(body.price);
     const stock = Number(body.stock);
 
     if (!name) return NextResponse.json({ error: "Product name is required." }, { status: 400 });
+    if (!categoryName) return NextResponse.json({ error: "Product category is required." }, { status: 400 });
     if (!barcode) return NextResponse.json({ error: "Barcode is required." }, { status: 400 });
     if (!Number.isFinite(price) || price < 0) return NextResponse.json({ error: "Price must be a valid non-negative number." }, { status: 400 });
     if (!Number.isInteger(stock) || stock < 0) return NextResponse.json({ error: "Quantity must be a valid non-negative whole number." }, { status: 400 });
@@ -29,10 +31,10 @@ export async function POST(request: Request) {
     }
 
     const category = await prisma.category.upsert({
-      where: { name: "Branch Products" },
+      where: { name: categoryName },
       update: {},
-      create: { name: "Branch Products" },
-      select: { id: true },
+      create: { name: categoryName },
+      select: { id: true, name: true },
     });
 
     const skuBase = makeSku(name, barcode);
@@ -51,7 +53,7 @@ export async function POST(request: Request) {
           categoryId: category.id,
           isActive: true,
         },
-        select: { id: true, name: true, sku: true, barcode: true },
+        select: { id: true, name: true, sku: true, barcode: true, category: { select: { id: true, name: true } } },
       });
 
       const inventory = await tx.branchInventory.create({
