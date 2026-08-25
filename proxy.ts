@@ -7,11 +7,13 @@ export async function proxy(request: NextRequest) {
   const isDashboard =
     pathname === "/dashboard" || pathname.startsWith("/dashboard/");
 
+  const isDashboardApi = pathname === "/api/dashboard" || pathname.startsWith("/api/dashboard/");
+
   const isDashboardOrdersApi =
     pathname === "/api/dashboard/orders" ||
     pathname.startsWith("/api/dashboard/orders/");
 
-  if (!isDashboard && !isDashboardOrdersApi) {
+  if (!isDashboard && !isDashboardApi) {
     return NextResponse.next();
   }
 
@@ -20,7 +22,7 @@ export async function proxy(request: NextRequest) {
   });
 
   if (!session?.user) {
-    if (isDashboardOrdersApi) {
+    if (isDashboardApi) {
       return NextResponse.json(
         { error: "You must be logged in to access this resource." },
         { status: 401 },
@@ -40,18 +42,25 @@ export async function proxy(request: NextRequest) {
       );
     }
 
+    // The general dashboard endpoint contains branch revenue/order data.
+    // Staff must use the inventory-only endpoint instead.
+    if (pathname === "/api/dashboard" || pathname === "/api/dashboard/") {
+      return NextResponse.json(
+        { error: "Branch staff only have access to inventory." },
+        { status: 403 },
+      );
+    }
+
     if (pathname === "/dashboard" || pathname === "/dashboard/") {
       return NextResponse.redirect(
         new URL("/dashboard/branch", request.url),
       );
     }
-  }
 
-  if (role === "BRANCH_ADMIN") {
     return NextResponse.next();
   }
 
-  if (role === "ADMIN") {
+  if (role === "BRANCH_ADMIN" || role === "ADMIN") {
     return NextResponse.next();
   }
 
@@ -68,6 +77,6 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     "/dashboard/:path*",
-    "/api/dashboard/orders/:path*",
+    "/api/dashboard/:path*",
   ],
 };
