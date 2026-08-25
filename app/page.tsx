@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Check, MapPin, X } from "lucide-react";
 
 import Header from "@/components/home/header";
 import Hero from "@/components/home/hero";
 import ProductSection from "@/components/home/product-section";
 import ValueSection from "@/components/home/value-section";
 import Footer from "@/components/home/footer";
+import { useCartStore } from "@/lib/cart-store";
 
 type Product = {
   id: string;
@@ -15,121 +17,136 @@ type Product = {
   price: number | string;
   stock: number;
   imageUrl?: string | null;
-  category?: {
-    name: string;
-  } | null;
+  category?: { name: string } | null;
 };
 
-const BRANCH_ID = "cmsxmqxgh0001kgtqcbxsi7b4";
+type Branch = {
+  id: string;
+  name: string;
+  code: string;
+  address?: string | null;
+  latitude: number;
+  longitude: number;
+  deliveryRadiusKm: number;
+  availableProductCount: number;
+};
+
+const SELECTED_BRANCH_KEY = "budget-go-selected-branch";
 
 export default function Home() {
+  const clearCart = useCartStore((state) => state.clearCart);
+  const cartItemCount = useCartStore((state) =>
+    state.items.reduce((total, item) => total + item.quantity, 0),
+  );
+
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  const [branchLoading, setBranchLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [branchError, setBranchError] = useState<string | null>(null);
+  const [locationOpen, setLocationOpen] = useState(false);
 
-  const [selectedBranch, setSelectedBranch] =
-    useState("Ingiriya");
+  const loadBranches = useCallback(async () => {
+    try {
+      setBranchLoading(true);
+      setBranchError(null);
 
-  useEffect(() => {
-    async function loadProducts() {
-      try {
-        setLoading(true);
-        setError(null);
+      const response = await fetch("/api/branches", { cache: "no-store" });
+      const data = await response.json().catch(() => null);
 
-        const response = await fetch(
-          `/api/branches/${BRANCH_ID}/products`,
-          {
-            method: "GET",
-            cache: "no-store",
-          },
-        );
-
-        /*
-         * Try to read the API response regardless of
-         * whether the request succeeded or failed.
-         *
-         * This is important because the API may return
-         * a useful error message.
-         */
-        const data = await response
-          .json()
-          .catch(() => null);
-
-        console.log(
-          "Products API status:",
-          response.status,
-        );
-
-        console.log(
-          "Products API response:",
-          data,
-        );
-
-        /*
-         * Handle API errors with the actual server
-         * error instead of a generic message.
-         */
-        if (!response.ok) {
-          throw new Error(
-            data?.error ||
-              `Failed to load products (${response.status})`,
-          );
-        }
-
-        /*
-         * Make sure the API returned an array.
-         */
-        if (!Array.isArray(data)) {
-          throw new Error(
-            "Products API returned an invalid response.",
-          );
-        }
-
-        setProducts(data);
-      } catch (error) {
-        console.error(
-          "Failed to fetch products:",
-          error,
-        );
-
-        setError(
-          error instanceof Error
-            ? error.message
-            : "Unable to load products right now.",
-        );
-      } finally {
-        setLoading(false);
+      if (!response.ok || !Array.isArray(data)) {
+        throw new Error(data?.error || "Unable to load branches.");
       }
-    }
 
-    loadProducts();
+      setBranches(data);
+
+      const savedId = window.localStorage.getItem(SELECTED_BRANCH_KEY);
+      const savedBranch = data.find((branch: Branch) => branch.id === savedId);
+      const defaultBranch = savedBranch ?? data.find((branch: Branch) => branch.code === "ING") ?? data[0];
+
+      if (defaultBranch) {
+        setSelectedBranch(defaultBranch);
+        window.localStorage.setItem(SELECTED_BRANCH_KEY, defaultBranch.id);
+      }
+    } catch (loadError) {
+      console.error("Failed to load branches:", loadError);
+      setBranchError(
+        loadError instanceof Error ? loadError.message : "Unable to load branches.",
+      );
+    } finally {
+      setBranchLoading(false);
+    }
   }, []);
 
-  /*
-   * Search products by:
-   * - name
-   * - description
-   * - category
-   */
-  const filteredProducts = useMemo(() => {
-    const query = searchQuery
-      .trim()
-      .toLowerCase();
+  const loadProducts = useCallback(async (branchId: string) => {
+    try {
+      setLoading(true);
+      setError(null);
 
-    if (!query) {
-      return products;
+      const response = await fetch(`/api/branches/${branchId}/products`, {
+        method: "GET",
+        cache: "no-store",
+      });
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok || !Array.isArray(data)) {
+        throw new Error(data?.error || `Failed to load products (${response.status}).`);
+      }
+
+      setProducts(data);
+    } catch (loadError) {
+      console.error("Failed to fetch products:", loadError);
+      setProducts([]);
+      setError(
+        loadError instanceof Error ? loadError.message : "Unable to load products right now.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadBranches();
+  }, [loadBranches]);
+
+  useEffect(() => {
+    if (selectedBranch) {
+      void loadProducts(selectedBranch.id);
+    }
+  }, [selectedBranch, loadProducts]);
+
+  const handleSelectBranch = (branch: Branch) => {
+    if (selectedBranch?.id === branch.id) {
+      setLocationOpen(false);
+      return;
     }
 
+    if (cartItemCount > 0) {
+      const confirmed = window.confirm(
+        "Changing branches will clear your current cart because products and prices are branch-specific. Continue?",
+      );
+
+      if (!confirmed) return;
+      clearCart();
+    }
+
+    setSelectedBranch(branch);
+    window.localStorage.setItem(SELECTED_BRANCH_KEY, branch.id);
+    setLocationOpen(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const filteredProducts = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return products;
+
     return products.filter((product) => {
-      const productName =
-        product.name.toLowerCase();
-
-      const description =
-        product.description?.toLowerCase() ?? "";
-
-      const category =
-        product.category?.name.toLowerCase() ?? "";
+      const productName = product.name.toLowerCase();
+      const description = product.description?.toLowerCase() ?? "";
+      const category = product.category?.name.toLowerCase() ?? "";
 
       return (
         productName.includes(query) ||
@@ -139,53 +156,51 @@ export default function Home() {
     });
   }, [products, searchQuery]);
 
-  /*
-   * Change branch/location.
-   *
-   * NOTE:
-   * The current product API still uses the fixed
-   * BRANCH_ID above. Changing this text does not yet
-   * change the actual database branch.
-   */
-  const handleChangeLocation = () => {
-    const newLocation = window.prompt(
-      "Enter your Budget Go branch:",
-      selectedBranch,
-    );
-
-    if (newLocation?.trim()) {
-      setSelectedBranch(newLocation.trim());
-    }
-  };
-
   return (
     <main className="min-h-screen bg-background text-foreground">
       <Header
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        selectedBranch={selectedBranch}
-        onChangeLocation={handleChangeLocation}
+        selectedBranch={selectedBranch?.name ?? (branchLoading ? "Loading..." : "Select branch")}
+        onChangeLocation={() => setLocationOpen(true)}
       />
 
       <Hero />
 
+      {selectedBranch && (
+        <div className="mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8">
+          <button
+            type="button"
+            onClick={() => setLocationOpen(true)}
+            className="flex w-full items-center justify-between gap-4 rounded-2xl border border-accent/15 bg-accent/5 px-4 py-3 text-left transition-colors hover:border-accent/30 hover:bg-accent/10"
+          >
+            <span className="flex min-w-0 items-center gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground">
+                <MapPin className="h-4 w-4" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-accent">
+                  Shopping from
+                </span>
+                <span className="block truncate text-sm font-bold">
+                  {selectedBranch.name}
+                </span>
+              </span>
+            </span>
+            <span className="shrink-0 text-xs font-bold text-accent">Change location</span>
+          </button>
+        </div>
+      )}
+
       <div id="products">
-        <ProductSection
-          products={filteredProducts}
-          loading={loading}
-        />
+        <ProductSection products={filteredProducts} loading={loading} />
       </div>
 
-      {error && (
+      {(error || branchError) && (
         <div className="mx-auto max-w-7xl px-4 pb-8 sm:px-6 lg:px-8">
           <div className="rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-center">
             <p className="text-sm font-medium text-destructive">
-              {error}
-            </p>
-
-            <p className="mt-1 text-xs text-muted-foreground">
-              Please check the browser console and
-              server terminal for the full API error.
+              {branchError ?? error}
             </p>
           </div>
         </div>
@@ -196,6 +211,79 @@ export default function Home() {
       </div>
 
       <Footer />
+
+      {locationOpen && (
+        <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/50 p-4 backdrop-blur-sm sm:items-center">
+          <div className="w-full max-w-2xl overflow-hidden rounded-[2rem] border border-border bg-card shadow-2xl">
+            <div className="flex items-center justify-between border-b border-border px-5 py-4 sm:px-6">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-accent">
+                  Delivery location
+                </p>
+                <h2 className="mt-1 text-xl font-black">Choose your Budget Go branch</h2>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Your product availability and prices depend on the selected branch.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setLocationOpen(false)}
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-border text-muted-foreground hover:bg-muted"
+                aria-label="Close branch selector"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="max-h-[65vh] overflow-y-auto p-4 sm:p-6">
+              {branchLoading ? (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {Array.from({ length: 6 }).map((_, index) => (
+                    <div key={index} className="h-24 animate-pulse rounded-2xl bg-muted" />
+                  ))}
+                </div>
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {branches.map((branch) => {
+                    const selected = selectedBranch?.id === branch.id;
+
+                    return (
+                      <button
+                        key={branch.id}
+                        type="button"
+                        onClick={() => handleSelectBranch(branch)}
+                        className={`rounded-2xl border p-4 text-left transition-all ${
+                          selected
+                            ? "border-accent bg-accent/5 shadow-md shadow-accent/10"
+                            : "border-border hover:border-accent/40 hover:bg-muted/30"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex min-w-0 gap-3">
+                            <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${selected ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground"}`}>
+                              <MapPin className="h-4 w-4" />
+                            </span>
+                            <span className="min-w-0">
+                              <span className="block text-sm font-black">{branch.name}</span>
+                              <span className="mt-1 block truncate text-[11px] text-muted-foreground">
+                                {branch.address ?? `Branch ${branch.code}`}
+                              </span>
+                              <span className="mt-2 block text-[10px] font-semibold text-accent">
+                                {branch.availableProductCount} products available · {branch.deliveryRadiusKm} km delivery radius
+                              </span>
+                            </span>
+                          </div>
+                          {selected && <Check className="h-5 w-5 shrink-0 text-accent" />}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
