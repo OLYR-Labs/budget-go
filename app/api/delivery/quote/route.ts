@@ -1,37 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
-
-const DEFAULT_BASE_FEE = 100;
-const DEFAULT_PER_KM_FEE = 30;
-
-function haversineDistanceKm(
-  latitude1: number,
-  longitude1: number,
-  latitude2: number,
-  longitude2: number,
-) {
-  const earthRadiusKm = 6371;
-  const toRadians = (value: number) => (value * Math.PI) / 180;
-
-  const dLatitude = toRadians(latitude2 - latitude1);
-  const dLongitude = toRadians(longitude2 - longitude1);
-
-  const a =
-    Math.sin(dLatitude / 2) ** 2 +
-    Math.cos(toRadians(latitude1)) *
-      Math.cos(toRadians(latitude2)) *
-      Math.sin(dLongitude / 2) ** 2;
-
-  return (
-    2 * earthRadiusKm * Math.asin(Math.sqrt(a))
-  );
-}
-
-function numberFromEnv(name: string, fallback: number) {
-  const value = Number(process.env[name]);
-  return Number.isFinite(value) && value >= 0 ? value : fallback;
-}
+import { calculateDeliveryFee, haversineDistanceKm } from "@/lib/delivery";
 
 export async function POST(request: Request) {
   try {
@@ -46,10 +16,7 @@ export async function POST(request: Request) {
     const longitude = Number(body.longitude);
 
     if (!branchId) {
-      return NextResponse.json(
-        { error: "A delivery branch is required." },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "A delivery branch is required." }, { status: 400 });
     }
 
     if (
@@ -60,10 +27,7 @@ export async function POST(request: Request) {
       longitude < -180 ||
       longitude > 180
     ) {
-      return NextResponse.json(
-        { error: "A valid map location is required." },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "A valid map location is required." }, { status: 400 });
     }
 
     const branch = await prisma.branch.findFirst({
@@ -78,10 +42,7 @@ export async function POST(request: Request) {
     });
 
     if (!branch) {
-      return NextResponse.json(
-        { error: "The selected branch is no longer available." },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "The selected branch is no longer available." }, { status: 404 });
     }
 
     const distanceKm = haversineDistanceKm(
@@ -91,39 +52,27 @@ export async function POST(request: Request) {
       longitude,
     );
 
-    const radiusKm = branch.deliveryRadius;
-
-    if (distanceKm > radiusKm) {
+    if (distanceKm > branch.deliveryRadius) {
       return NextResponse.json(
         {
           deliverable: false,
           branch: branch.name,
           distanceKm: Number(distanceKm.toFixed(2)),
-          radiusKm,
-          error: `This location is ${distanceKm.toFixed(1)} km from ${branch.name}. We currently deliver within ${radiusKm} km of the branch.`,
+          radiusKm: branch.deliveryRadius,
+          error: `This location is ${distanceKm.toFixed(1)} km from ${branch.name}. We currently deliver within ${branch.deliveryRadius} km of the branch.`,
         },
         { status: 422 },
       );
     }
 
-    const baseFee = numberFromEnv(
-      "DELIVERY_BASE_FEE_LKR",
-      DEFAULT_BASE_FEE,
-    );
-    const perKmFee = numberFromEnv(
-      "DELIVERY_PER_KM_FEE_LKR",
-      DEFAULT_PER_KM_FEE,
-    );
-
-    const rawFee = baseFee + distanceKm * perKmFee;
-    const deliveryFee = Math.ceil(rawFee / 10) * 10;
+    const { baseFee, perKmFee, deliveryFee } = calculateDeliveryFee(distanceKm);
 
     return NextResponse.json({
       deliverable: true,
       branch: branch.name,
       branchId: branch.id,
       distanceKm: Number(distanceKm.toFixed(2)),
-      radiusKm,
+      radiusKm: branch.deliveryRadius,
       baseFee,
       perKmFee,
       deliveryFee,
