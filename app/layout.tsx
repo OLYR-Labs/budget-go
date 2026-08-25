@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 import { ThemeProvider } from "@/components/theme-provider";
+import { PushSetup } from "@/components/notifications/push-setup";
 
 export const metadata: Metadata = {
   title: {
@@ -33,6 +34,7 @@ export default function RootLayout({
           disableTransitionOnChange={false}
         >
           {children}
+          <PushSetup />
         </ThemeProvider>
       </body>
     </html>
