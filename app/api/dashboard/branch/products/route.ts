@@ -10,7 +10,7 @@ export async function GET() {
     const products = await prisma.product.findMany({
       where: {
         isActive: true,
-        branchInventory: {
+        inventory: {
           none: {
             branchId: context.branch.id,
           },
