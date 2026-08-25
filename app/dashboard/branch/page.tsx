@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import BranchInventory from "@/components/dashboard/branch-inventory";
+import BranchQuickProductForm from "@/components/dashboard/branch-quick-product-form";
 import { getBranchDashboardContext } from "@/lib/branch-dashboard-auth";
 import { getDashboardContext } from "@/lib/dashboard-auth";
 
@@ -20,9 +21,12 @@ export default async function BranchDashboardPage() {
   }
 
   return (
-    <BranchInventory
-      branchName={context.branch.name}
-      branchCode={context.branch.code}
-    />
+    <>
+      <BranchQuickProductForm />
+      <BranchInventory
+        branchName={context.branch.name}
+        branchCode={context.branch.code}
+      />
+    </>
   );
 }
