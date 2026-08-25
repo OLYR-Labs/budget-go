@@ -23,7 +23,6 @@ export async function notifyUsers(
     const result = await sendPushNotification(
       {
         endpoint: subscription.endpoint,
-        expirationTime: subscription.expirationTime?.getTime() ?? null,
         keys: { p256dh: subscription.p256dh, auth: subscription.auth },
       },
       payload,
