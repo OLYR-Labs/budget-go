@@ -12,6 +12,9 @@ import {
 type Order = {
   id: string;
   total: number;
+  subtotal?: number;
+  deliveryFee?: number;
+  deliveryDistanceKm?: number;
   totalItems: number;
   paymentMethod: string;
   createdAt: string;
@@ -25,14 +28,10 @@ type Order = {
 };
 
 export default function CheckoutSuccessPage() {
-  const [order, setOrder] = useState<Order | null>(
-    null,
-  );
+  const [order, setOrder] = useState<Order | null>(null);
 
   useEffect(() => {
-    const savedOrder = localStorage.getItem(
-      "budget-go-last-order",
-    );
+    const savedOrder = localStorage.getItem("budget-go-last-order");
 
     if (!savedOrder) {
       return;
@@ -41,10 +40,7 @@ export default function CheckoutSuccessPage() {
     try {
       setOrder(JSON.parse(savedOrder));
     } catch (error) {
-      console.error(
-        "Failed to read saved order:",
-        error,
-      );
+      console.error("Failed to read saved order:", error);
     }
   }, []);
 
@@ -63,14 +59,12 @@ export default function CheckoutSuccessPage() {
       </header>
 
       <div className="relative overflow-hidden">
-        {/* Background glow */}
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute left-1/2 top-10 h-[25rem] w-[25rem] -translate-x-1/2 rounded-full bg-accent/10 blur-[120px]" />
         </div>
 
         <div className="relative mx-auto flex min-h-[calc(100vh-64px)] max-w-3xl items-center justify-center px-4 py-16 sm:px-6 lg:px-8">
           <div className="w-full text-center">
-            {/* Success icon */}
             <div className="mx-auto flex h-20 w-20 animate-fade-up items-center justify-center rounded-full bg-accent text-accent-foreground shadow-xl shadow-accent/20">
               <Check className="h-9 w-9" />
             </div>
@@ -84,23 +78,15 @@ export default function CheckoutSuccessPage() {
             </h1>
 
             <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-muted-foreground">
-              Your order has been successfully placed.
-              We'll prepare it and get it ready for
-              delivery.
+              Your order has been successfully placed. We'll prepare it and get it ready for delivery.
             </p>
 
-            {/* Order card */}
             {order && (
               <div className="mx-auto mt-8 max-w-lg rounded-[2rem] border border-border/70 bg-card p-6 text-left shadow-2xl sm:p-7">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-xs text-muted-foreground">
-                      Order number
-                    </p>
-
-                    <p className="mt-1 text-lg font-black">
-                      {order.id}
-                    </p>
+                    <p className="text-xs text-muted-foreground">Order number</p>
+                    <p className="mt-1 text-lg font-black">{order.id}</p>
                   </div>
 
                   <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent/10 text-accent">
@@ -112,45 +98,37 @@ export default function CheckoutSuccessPage() {
 
                 <div className="space-y-4">
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      Items
-                    </span>
-
-                    <span className="font-semibold">
-                      {order.totalItems}
-                    </span>
+                    <span className="text-muted-foreground">Items</span>
+                    <span className="font-semibold">{order.totalItems}</span>
                   </div>
 
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      Payment
-                    </span>
-
-                    <span className="font-semibold">
-                      Cash on Delivery
-                    </span>
+                    <span className="text-muted-foreground">Payment</span>
+                    <span className="font-semibold">Cash on Delivery</span>
                   </div>
 
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      Delivery
-                    </span>
-
+                    <span className="text-muted-foreground">Delivery</span>
                     <span className="font-semibold text-accent">
-                      Free
+                      Rs. {(order.deliveryFee ?? 0).toLocaleString()}
                     </span>
                   </div>
+
+                  {typeof order.deliveryDistanceKm === "number" && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Delivery distance</span>
+                      <span className="font-semibold">
+                        {order.deliveryDistanceKm.toFixed(2)} km
+                      </span>
+                    </div>
+                  )}
 
                   <div className="h-px bg-border" />
 
                   <div className="flex items-end justify-between">
-                    <span className="font-bold">
-                      Total
-                    </span>
-
+                    <span className="font-bold">Total</span>
                     <span className="text-2xl font-black">
-                      Rs.{" "}
-                      {order.total.toLocaleString()}
+                      Rs. {order.total.toLocaleString()}
                     </span>
                   </div>
                 </div>
@@ -163,22 +141,14 @@ export default function CheckoutSuccessPage() {
                       </div>
 
                       <div className="min-w-0">
-                        <p className="text-xs font-semibold">
-                          Delivering to
-                        </p>
-
-                        <p className="mt-1 text-sm font-bold">
-                          {order.deliveryDetails.name}
-                        </p>
-
+                        <p className="text-xs font-semibold">Delivering to</p>
+                        <p className="mt-1 text-sm font-bold">{order.deliveryDetails.name}</p>
                         <p className="mt-1 text-xs leading-5 text-muted-foreground">
                           {order.deliveryDetails.address}
                         </p>
-
                         <p className="text-xs leading-5 text-muted-foreground">
                           {order.deliveryDetails.city}
                         </p>
-
                         <p className="mt-1 text-xs text-muted-foreground">
                           {order.deliveryDetails.phone}
                         </p>
@@ -189,7 +159,6 @@ export default function CheckoutSuccessPage() {
               </div>
             )}
 
-            {/* Actions */}
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link
                 href="/#products"
