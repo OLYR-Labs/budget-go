@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { LocateFixed, Loader2, MapPin, Search } from "lucide-react";
 
-type BranchLocation = { name: string; latitude: number; longitude: number };
+type BranchLocation = { id: string; name: string; latitude: number; longitude: number };
 type LocationValue = { latitude: number; longitude: number; address: string; city: string };
 type LocationPickerProps = { branch: BranchLocation; value: LocationValue | null; onChange: (value: LocationValue) => void };
 type LatLng = { lat: number; lng: number };
