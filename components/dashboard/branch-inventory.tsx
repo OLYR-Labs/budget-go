@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 
 type InventoryItem = {
   id: string;
@@ -19,12 +19,7 @@ type InventoryItem = {
   };
 };
 
-type Product = {
-  id: string;
-  name: string;
-  sku: string;
-};
-
+type Product = { id: string; name: string; sku: string };
 type Props = { branchName: string; branchCode: string };
 
 export default function BranchInventory({ branchName, branchCode }: Props) {
@@ -70,7 +65,7 @@ export default function BranchInventory({ branchName, branchCode }: Props) {
     return () => clearTimeout(timer);
   }, [search]);
 
-  async function addProduct(event: React.FormEvent) {
+  async function addProduct(event: FormEvent) {
     event.preventDefault();
     if (!productId || busy) return;
     setBusy("add");
