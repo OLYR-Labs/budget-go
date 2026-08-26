@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Header from "@/components/home/header";
 import Hero from "@/components/home/hero";
 import ProductSection from "@/components/home/product-section";
@@ -25,6 +25,8 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [branchError, setBranchError] = useState<string | null>(null);
   const [locationOpen, setLocationOpen] = useState(false);
+  const restoringScrollRef = useRef(false);
+  const hasRestoredScrollRef = useRef(false);
 
   const loadBranches = useCallback(async () => {
     try {
@@ -57,25 +59,95 @@ export default function Home() {
   useEffect(() => { void loadBranches(); }, [loadBranches]);
   useEffect(() => { if (selectedBranch) void loadProducts(selectedBranch.id); }, [selectedBranch, loadProducts]);
 
-  // Preserve the customer's place on the homepage when the tab is backgrounded,
-  // refreshed by the browser, or restored from bfcache. This prevents a tab switch
-  // from unexpectedly throwing the customer back to the hero section.
+  // Keep the exact position in the homepage when the browser backgrounds/restores
+  // this tab or recreates the page. The previous implementation restored on the
+  // first animation frame, which could happen while the hero was the only content
+  // with a real height. The browser then clamped the requested scroll position to
+  // the top. We now save continuously and restore only after the page has rendered
+  // enough content, with a few delayed attempts to cover slow product loading.
   useEffect(() => {
     if (typeof window === "undefined") return;
+
     window.history.scrollRestoration = "manual";
-    const saved = Number(window.sessionStorage.getItem(HOME_SCROLL_KEY));
-    if (Number.isFinite(saved) && saved > 0) {
-      requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo(0, saved)));
-    }
-    const save = () => window.sessionStorage.setItem(HOME_SCROLL_KEY, String(window.scrollY));
+
+    const save = () => {
+      if (!restoringScrollRef.current) {
+        window.sessionStorage.setItem(HOME_SCROLL_KEY, String(window.scrollY));
+      }
+    };
+
+    const restore = () => {
+      if (hasRestoredScrollRef.current) return;
+      const saved = Number(window.sessionStorage.getItem(HOME_SCROLL_KEY));
+      if (!Number.isFinite(saved) || saved <= 0) return;
+
+      // Don't mark the restore as complete until the browser can actually reach
+      // the saved position. This is important when the product API is still loading.
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+      if (maxScroll < saved) return;
+
+      restoringScrollRef.current = true;
+      window.scrollTo({ top: saved, behavior: "auto" });
+      requestAnimationFrame(() => {
+        restoringScrollRef.current = false;
+        const distance = Math.abs(window.scrollY - saved);
+        if (distance <= 2) {
+          hasRestoredScrollRef.current = true;
+        }
+      });
+    };
+
+    const restoreAfterVisibility = () => {
+      if (document.visibilityState !== "visible") return;
+      hasRestoredScrollRef.current = false;
+      restore();
+      window.setTimeout(restore, 100);
+      window.setTimeout(restore, 300);
+      window.setTimeout(restore, 700);
+      window.setTimeout(restore, 1500);
+    };
+
     window.addEventListener("scroll", save, { passive: true });
     window.addEventListener("pagehide", save);
-    document.addEventListener("visibilitychange", save);
+    window.addEventListener("pageshow", restoreAfterVisibility);
+    document.addEventListener("visibilitychange", restoreAfterVisibility);
+
+    // Try once immediately and again after the first render.
+    restore();
+    const frame = requestAnimationFrame(restore);
+
     return () => {
-      save(); window.removeEventListener("scroll", save); window.removeEventListener("pagehide", save); document.removeEventListener("visibilitychange", save);
+      save();
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", save);
+      window.removeEventListener("pagehide", save);
+      window.removeEventListener("pageshow", restoreAfterVisibility);
+      document.removeEventListener("visibilitychange", restoreAfterVisibility);
       window.history.scrollRestoration = "auto";
     };
   }, []);
+
+  // Product data changes the page height. Once products have rendered, retry the
+  // restoration so a reload/tab restoration cannot be clamped by the short initial DOM.
+  useEffect(() => {
+    if (loading || products.length === 0 || hasRestoredScrollRef.current) return;
+    const saved = Number(window.sessionStorage.getItem(HOME_SCROLL_KEY));
+    if (!Number.isFinite(saved) || saved <= 0) return;
+
+    const timers = [0, 100, 300, 700].map((delay) => window.setTimeout(() => {
+      if (hasRestoredScrollRef.current) return;
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+      if (maxScroll < saved) return;
+      restoringScrollRef.current = true;
+      window.scrollTo({ top: saved, behavior: "auto" });
+      window.requestAnimationFrame(() => {
+        restoringScrollRef.current = false;
+        if (Math.abs(window.scrollY - saved) <= 2) hasRestoredScrollRef.current = true;
+      });
+    }, delay));
+
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
+  }, [loading, products.length]);
 
   const handleSelectBranch = (branch: Branch) => {
     if (selectedBranch?.id === branch.id) { setLocationOpen(false); return; }
