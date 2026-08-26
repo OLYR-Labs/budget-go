@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { PushSetup } from "@/components/notifications/push-setup";
+import { TabSessionGuard } from "@/components/auth/tab-session-guard";
 
 export const metadata: Metadata = {
   title: {
@@ -35,11 +36,13 @@ export default function RootLayout({
           enableSystem={false}
           disableTransitionOnChange={false}
         >
-          {children}
-          <div className="fixed right-4 top-4 z-50">
-            <NotificationBell />
-          </div>
-          <PushSetup />
+          <TabSessionGuard>
+            {children}
+            <div className="fixed right-4 top-4 z-50">
+              <NotificationBell />
+            </div>
+            <PushSetup />
+          </TabSessionGuard>
         </ThemeProvider>
       </body>
     </html>
