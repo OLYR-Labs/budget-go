@@ -21,15 +21,19 @@ export default function LoginPage() {
     if (!form.checkValidity()) { form.reportValidity(); return; }
     setError(""); setLoading(true);
     try {
-      // Better Auth returns the signed-in user in the sign-in response. Use that
-      // immediately instead of waiting for a second session request. This avoids
-      // the login page flashing/reappearing while the client session catches up.
       const result = await authClient.signIn.email({ email: email.trim(), password });
       if (result.error) { setError(result.error.message || "Unable to sign in. Please check your credentials."); return; }
+
+      // Mark this browser tab before navigating so the tab-session guard never
+      // mistakes the freshly authenticated navigation for a closed-tab session.
       markTabSessionActive();
       const role = result.data?.user?.role;
-      router.replace(role === "DELIVERY_STAFF" ? "/delivery" : "/dashboard");
-      router.refresh();
+      const destination = role === "DELIVERY_STAFF" ? "/delivery" : "/dashboard";
+
+      // Do a real browser navigation after authentication. This makes the new
+      // auth cookie available to the server/proxy immediately and avoids the
+      // login page briefly rendering again while the client session cache updates.
+      window.location.replace(destination);
     } catch (loginError) {
       console.error("Login failed:", loginError);
       setError("Something went wrong while signing in. Please try again.");
