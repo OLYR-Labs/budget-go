@@ -12,6 +12,8 @@ type Product = { id: string; name: string; description?: string | null; price: n
 type Branch = { id: string; name: string; code: string; address?: string | null; latitude: number; longitude: number; deliveryRadiusKm: number; availableProductCount: number };
 const SELECTED_BRANCH_KEY = "budget-go-selected-branch";
 const HOME_SCROLL_KEY = "budget-go-home-scroll";
+const HOME_SCROLL_PATH_KEY = "budget-go-home-scroll-path";
+const PRODUCTS_CACHE_PREFIX = "budget-go-home-products:";
 
 export default function Home() {
   const clearCart = useCartStore((state) => state.clearCart);
@@ -26,6 +28,7 @@ export default function Home() {
   const [branchError, setBranchError] = useState<string | null>(null);
   const [locationOpen, setLocationOpen] = useState(false);
   const restoringScrollRef = useRef(false);
+  const holdingSavedPositionRef = useRef(false);
   const hasRestoredScrollRef = useRef(false);
 
   const loadBranches = useCallback(async () => {
@@ -45,108 +48,146 @@ export default function Home() {
   }, []);
 
   const loadProducts = useCallback(async (branchId: string) => {
+    const cacheKey = `${PRODUCTS_CACHE_PREFIX}${branchId}`;
+    let usedCachedProducts = false;
+
     try {
-      setLoading(true); setError(null);
+      const cached = window.sessionStorage.getItem(cacheKey);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed)) {
+          setProducts(parsed);
+          setLoading(false);
+          usedCachedProducts = true;
+        }
+      }
+    } catch (cacheError) {
+      console.warn("Failed to read cached homepage products:", cacheError);
+    }
+
+    try {
+      if (!usedCachedProducts) setLoading(true);
+      setError(null);
       const response = await fetch(`/api/branches/${branchId}/products`, { method: "GET", cache: "no-store" });
       const data = await response.json().catch(() => null);
       if (!response.ok || !Array.isArray(data)) throw new Error(data?.error || `Failed to load products (${response.status}).`);
       setProducts(data);
+      try { window.sessionStorage.setItem(cacheKey, JSON.stringify(data)); } catch (cacheError) { console.warn("Failed to cache homepage products:", cacheError); }
     } catch (loadError) {
-      console.error("Failed to fetch products:", loadError); setProducts([]); setError(loadError instanceof Error ? loadError.message : "Unable to load products right now.");
+      console.error("Failed to fetch products:", loadError);
+      if (!usedCachedProducts) setProducts([]);
+      setError(loadError instanceof Error ? loadError.message : "Unable to load products right now.");
     } finally { setLoading(false); }
   }, []);
 
   useEffect(() => { void loadBranches(); }, [loadBranches]);
   useEffect(() => { if (selectedBranch) void loadProducts(selectedBranch.id); }, [selectedBranch, loadProducts]);
 
-  // Keep the exact position in the homepage when the browser backgrounds/restores
-  // this tab or recreates the page. The previous implementation restored on the
-  // first animation frame, which could happen while the hero was the only content
-  // with a real height. The browser then clamped the requested scroll position to
-  // the top. We now save continuously and restore only after the page has rendered
-  // enough content, with a few delayed attempts to cover slow product loading.
+  // Preserve the homepage viewport across tab switches and genuine page remounts.
+  // A crucial detail is that cleanup NEVER writes scrollY: during a remount the
+  // browser can report 0, which would overwrite the position the user was at.
   useEffect(() => {
     if (typeof window === "undefined") return;
 
+    const path = window.location.pathname;
+    const savedPath = window.sessionStorage.getItem(HOME_SCROLL_PATH_KEY);
+    const saved = Number(window.sessionStorage.getItem(HOME_SCROLL_KEY));
+    const hasSaved = savedPath === path && Number.isFinite(saved) && saved > 0;
+
+    holdingSavedPositionRef.current = hasSaved;
+    hasRestoredScrollRef.current = false;
     window.history.scrollRestoration = "manual";
 
     const save = () => {
-      if (!restoringScrollRef.current) {
-        window.sessionStorage.setItem(HOME_SCROLL_KEY, String(window.scrollY));
-      }
+      if (restoringScrollRef.current || holdingSavedPositionRef.current) return;
+      window.sessionStorage.setItem(HOME_SCROLL_KEY, String(window.scrollY));
+      window.sessionStorage.setItem(HOME_SCROLL_PATH_KEY, path);
+    };
+
+    const getSavedPosition = () => {
+      const savedPathNow = window.sessionStorage.getItem(HOME_SCROLL_PATH_KEY);
+      const savedNow = Number(window.sessionStorage.getItem(HOME_SCROLL_KEY));
+      return savedPathNow === path && Number.isFinite(savedNow) && savedNow > 0 ? savedNow : null;
     };
 
     const restore = () => {
       if (hasRestoredScrollRef.current) return;
-      const saved = Number(window.sessionStorage.getItem(HOME_SCROLL_KEY));
-      if (!Number.isFinite(saved) || saved <= 0) return;
+      const target = getSavedPosition();
+      if (target === null) {
+        holdingSavedPositionRef.current = false;
+        hasRestoredScrollRef.current = true;
+        return;
+      }
 
-      // Don't mark the restore as complete until the browser can actually reach
-      // the saved position. This is important when the product API is still loading.
-      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-      if (maxScroll < saved) return;
+      const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+      if (maxScroll < target) return;
 
       restoringScrollRef.current = true;
-      window.scrollTo({ top: saved, behavior: "auto" });
+      window.scrollTo(0, target);
       requestAnimationFrame(() => {
+        const reached = Math.abs(window.scrollY - target) <= 4;
         restoringScrollRef.current = false;
-        const distance = Math.abs(window.scrollY - saved);
-        if (distance <= 2) {
+        if (reached) {
           hasRestoredScrollRef.current = true;
+          holdingSavedPositionRef.current = false;
         }
       });
     };
 
-    const restoreAfterVisibility = () => {
+    const restoreAfterVisible = () => {
       if (document.visibilityState !== "visible") return;
       hasRestoredScrollRef.current = false;
-      restore();
-      window.setTimeout(restore, 100);
-      window.setTimeout(restore, 300);
-      window.setTimeout(restore, 700);
-      window.setTimeout(restore, 1500);
+      requestAnimationFrame(restore);
+      [50, 150, 300, 600, 1000, 1600, 2500].forEach((delay) => window.setTimeout(restore, delay));
     };
 
     window.addEventListener("scroll", save, { passive: true });
     window.addEventListener("pagehide", save);
-    window.addEventListener("pageshow", restoreAfterVisibility);
-    document.addEventListener("visibilitychange", restoreAfterVisibility);
+    window.addEventListener("pageshow", restoreAfterVisible);
+    document.addEventListener("visibilitychange", restoreAfterVisible);
 
-    // Try once immediately and again after the first render.
-    restore();
-    const frame = requestAnimationFrame(restore);
+    requestAnimationFrame(restore);
 
     return () => {
-      save();
-      cancelAnimationFrame(frame);
       window.removeEventListener("scroll", save);
       window.removeEventListener("pagehide", save);
-      window.removeEventListener("pageshow", restoreAfterVisibility);
-      document.removeEventListener("visibilitychange", restoreAfterVisibility);
+      window.removeEventListener("pageshow", restoreAfterVisible);
+      document.removeEventListener("visibilitychange", restoreAfterVisible);
       window.history.scrollRestoration = "auto";
     };
   }, []);
 
-  // Product data changes the page height. Once products have rendered, retry the
-  // restoration so a reload/tab restoration cannot be clamped by the short initial DOM.
+  // Once the product list is available, make one final restoration attempt. This
+  // handles a full React remount where the initial document was too short to reach
+  // the saved position.
   useEffect(() => {
-    if (loading || products.length === 0 || hasRestoredScrollRef.current) return;
+    if (loading) return;
+    const path = window.location.pathname;
+    const savedPath = window.sessionStorage.getItem(HOME_SCROLL_PATH_KEY);
     const saved = Number(window.sessionStorage.getItem(HOME_SCROLL_KEY));
-    if (!Number.isFinite(saved) || saved <= 0) return;
+    if (savedPath !== path || !Number.isFinite(saved) || saved <= 0) {
+      holdingSavedPositionRef.current = false;
+      return;
+    }
 
-    const timers = [0, 100, 300, 700].map((delay) => window.setTimeout(() => {
+    const restore = () => {
       if (hasRestoredScrollRef.current) return;
-      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+      const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
       if (maxScroll < saved) return;
       restoringScrollRef.current = true;
-      window.scrollTo({ top: saved, behavior: "auto" });
-      window.requestAnimationFrame(() => {
+      window.scrollTo(0, saved);
+      requestAnimationFrame(() => {
         restoringScrollRef.current = false;
-        if (Math.abs(window.scrollY - saved) <= 2) hasRestoredScrollRef.current = true;
+        if (Math.abs(window.scrollY - saved) <= 4) {
+          hasRestoredScrollRef.current = true;
+          holdingSavedPositionRef.current = false;
+        }
       });
-    }, delay));
+    };
 
-    return () => timers.forEach((timer) => window.clearTimeout(timer));
+    const frame = requestAnimationFrame(restore);
+    const timer = window.setTimeout(restore, 100);
+    return () => { cancelAnimationFrame(frame); window.clearTimeout(timer); };
   }, [loading, products.length]);
 
   const handleSelectBranch = (branch: Branch) => {
@@ -156,7 +197,12 @@ export default function Home() {
       if (!confirmed) return;
       clearCart();
     }
-    setSelectedBranch(branch); window.localStorage.setItem(SELECTED_BRANCH_KEY, branch.id); setLocationOpen(false); window.scrollTo({ top: 0, behavior: "smooth" });
+    setSelectedBranch(branch); window.localStorage.setItem(SELECTED_BRANCH_KEY, branch.id); setLocationOpen(false);
+    window.sessionStorage.removeItem(HOME_SCROLL_KEY);
+    window.sessionStorage.setItem(HOME_SCROLL_PATH_KEY, window.location.pathname);
+    holdingSavedPositionRef.current = false;
+    hasRestoredScrollRef.current = true;
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const filteredProducts = useMemo(() => {
