@@ -1,21 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import {
-  ArrowRight,
-  Check,
-  PackageSearch,
-  ShoppingCart,
-} from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, Check, PackageSearch, ShoppingCart } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-
 import { useCartStore } from "@/lib/cart-store";
 
 type Product = {
@@ -36,11 +28,9 @@ type ProductSectionProps = {
 function ProductSkeleton() {
   return (
     <Card className="overflow-hidden rounded-2xl border-border/70 bg-card shadow-none">
-      <div className="skeleton aspect-[4/3]" />
+      <div className="skeleton aspect-square" />
       <CardContent className="p-3">
-        <div className="skeleton h-3 w-16 rounded-full" />
-        <div className="skeleton mt-2.5 h-4 w-3/4 rounded-lg" />
-        <div className="skeleton mt-1.5 h-3 w-1/2 rounded-lg" />
+        <div className="skeleton h-4 w-3/4 rounded-lg" />
         <div className="mt-3 flex items-center justify-between gap-2">
           <div className="skeleton h-5 w-16 rounded-lg" />
           <div className="skeleton h-7 w-12 rounded-lg" />
@@ -50,18 +40,11 @@ function ProductSkeleton() {
   );
 }
 
-function ProductCard({
-  product,
-  index,
-}: {
-  product: Product;
-  index: number;
-}) {
+function ProductCard({ product, index }: { product: Product; index: number }) {
   const [added, setAdded] = useState(false);
   const addItem = useCartStore((state) => state.addItem);
   const price = Number(product.price);
   const isOutOfStock = product.stock <= 0;
-  const isLowStock = product.stock > 0 && product.stock <= 5;
 
   function handleAddToCart() {
     if (isOutOfStock) return;
@@ -85,7 +68,7 @@ function ProductCard({
       }`}
       style={{ animationDelay: `${index * 50}ms` }}
     >
-      <div className="relative aspect-[4/3] overflow-hidden bg-muted/50">
+      <div className="relative aspect-square overflow-hidden bg-muted/50">
         {product.imageUrl ? (
           <img
             src={product.imageUrl}
@@ -96,32 +79,20 @@ function ProductCard({
           />
         ) : (
           <div className="product-image flex h-full w-full items-center justify-center">
-            <PackageSearch className="h-9 w-9 text-muted-foreground/20 transition-transform duration-300 group-hover:scale-110" />
+            <PackageSearch className="h-10 w-10 text-muted-foreground/20 transition-transform duration-300 group-hover:scale-110" />
           </div>
         )}
 
         <Badge
           variant="secondary"
-          className={`absolute left-2.5 top-2.5 rounded-full border px-2 py-0.5 text-[9px] font-semibold shadow-sm backdrop-blur ${
+          className={`absolute left-2.5 top-2.5 rounded-full border px-2.5 py-1 text-[9px] font-bold shadow-sm backdrop-blur ${
             isOutOfStock
               ? "border-destructive/20 bg-destructive/10 text-destructive"
               : "border-border/60 bg-background/90 text-foreground"
           }`}
         >
-          {isOutOfStock ? "Out of stock" : `${product.stock} in stock`}
+          {isOutOfStock ? "Out of stock" : "In stock"}
         </Badge>
-
-        {product.category?.name && (
-          <Badge className="absolute right-2.5 top-2.5 max-w-[45%] truncate rounded-full bg-accent px-2 py-0.5 text-[9px] text-accent-foreground shadow-md shadow-accent/20">
-            {product.category.name}
-          </Badge>
-        )}
-
-        {isLowStock && (
-          <Badge className="absolute bottom-2.5 left-2.5 rounded-full bg-accent px-2 py-0.5 text-[9px] font-semibold text-accent-foreground shadow-md">
-            Only {product.stock} left
-          </Badge>
-        )}
 
         {isOutOfStock && (
           <div className="absolute inset-0 flex items-center justify-center bg-background/10">
@@ -133,25 +104,9 @@ function ProductCard({
       </div>
 
       <CardContent className="p-3">
-        {product.category?.name && (
-          <p className="text-[9px] font-bold uppercase tracking-[0.08em] text-accent">
-            {product.category.name}
-          </p>
-        )}
-
-        <h3 className="mt-1 min-h-[2.25rem] line-clamp-2 text-xs font-bold leading-4 tracking-tight text-foreground">
+        <h3 className="min-h-[2.25rem] line-clamp-2 text-xs font-bold leading-4 tracking-tight text-foreground">
           {product.name}
         </h3>
-
-        {product.description && (
-          <p className="mt-1 line-clamp-2 text-[10px] leading-3.5 text-muted-foreground">
-            {product.description}
-          </p>
-        )}
-
-        <p className={`mt-1 text-[10px] ${isOutOfStock ? "font-semibold text-destructive" : "text-muted-foreground"}`}>
-          {isOutOfStock ? "Currently unavailable" : `${product.stock} available`}
-        </p>
 
         <div className="mt-3 flex items-center justify-between gap-1.5">
           <div className="min-w-0">
@@ -197,9 +152,11 @@ export default function ProductSection({ products, loading = false }: ProductSec
           </p>
         </div>
 
-        <Button variant="ghost" className="group w-fit rounded-xl px-2.5 text-xs font-semibold">
-          View all
-          <ArrowRight className="ml-1 h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-1" />
+        <Button asChild variant="ghost" className="group w-fit rounded-xl px-2.5 text-xs font-semibold">
+          <Link href="/products">
+            View all
+            <ArrowRight className="ml-1 h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-1" />
+          </Link>
         </Button>
       </div>
 
