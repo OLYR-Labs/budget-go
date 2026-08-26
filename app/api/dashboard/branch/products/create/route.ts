@@ -16,18 +16,21 @@ export async function POST(request: Request) {
     const name = typeof body.name === "string" ? body.name.trim() : "";
     const categoryName = typeof body.category === "string" ? body.category.trim() : "";
     const barcode = typeof body.barcode === "string" ? body.barcode.trim() : "";
+    const imageUrl = typeof body.imageUrl === "string" && body.imageUrl.trim() ? body.imageUrl.trim() : null;
     const price = Number(body.price);
     const stock = Number(body.stock);
 
     if (!name) return NextResponse.json({ error: "Product name is required." }, { status: 400 });
     if (!categoryName) return NextResponse.json({ error: "Product category is required." }, { status: 400 });
-    if (!barcode) return NextResponse.json({ error: "Barcode is required." }, { status: 400 });
+    if (!barcode) return NextResponse.json({ error: "Product code / barcode is required." }, { status: 400 });
     if (!Number.isFinite(price) || price < 0) return NextResponse.json({ error: "Price must be a valid non-negative number." }, { status: 400 });
     if (!Number.isInteger(stock) || stock < 0) return NextResponse.json({ error: "Quantity must be a valid non-negative whole number." }, { status: 400 });
+    if (imageUrl && !imageUrl.startsWith("data:image/")) return NextResponse.json({ error: "Invalid product photo." }, { status: 400 });
+    if (imageUrl && imageUrl.length > 2_500_000) return NextResponse.json({ error: "Product photo is too large after compression." }, { status: 400 });
 
     const existingBarcode = await prisma.product.findUnique({ where: { barcode }, select: { id: true, name: true } });
     if (existingBarcode) {
-      return NextResponse.json({ error: `A product with barcode ${barcode} already exists (${existingBarcode.name}). Use the existing product instead.` }, { status: 409 });
+      return NextResponse.json({ error: `A product with code ${barcode} already exists (${existingBarcode.name}).` }, { status: 409 });
     }
 
     const category = await prisma.category.upsert({
@@ -50,10 +53,11 @@ export async function POST(request: Request) {
           name,
           barcode,
           sku,
+          imageUrl,
           categoryId: category.id,
           isActive: true,
         },
-        select: { id: true, name: true, sku: true, barcode: true, category: { select: { id: true, name: true } } },
+        select: { id: true, name: true, sku: true, barcode: true, imageUrl: true, category: { select: { id: true, name: true } } },
       });
 
       const inventory = await tx.branchInventory.create({
