@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import {
   Mail,
   MapPin,
@@ -6,6 +9,7 @@ import {
 } from "lucide-react";
 
 type FooterBranch = {
+  id: string;
   name: string;
   address?: string | null;
 };
@@ -14,7 +18,52 @@ type FooterProps = {
   selectedBranch?: FooterBranch | null;
 };
 
-export default function Footer({ selectedBranch }: FooterProps) {
+const SELECTED_BRANCH_KEY = "budget-go-selected-branch";
+
+export default function Footer({ selectedBranch: selectedBranchProp }: FooterProps) {
+  const [selectedBranch, setSelectedBranch] = useState<FooterBranch | null>(selectedBranchProp ?? null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadBranches = async () => {
+      try {
+        const response = await fetch("/api/branches", { cache: "no-store" });
+        const data = await response.json().catch(() => null);
+        if (!mounted || !response.ok || !Array.isArray(data)) return;
+
+        const selectedId = window.localStorage.getItem(SELECTED_BRANCH_KEY);
+        const branch = data.find((item: FooterBranch) => item.id === selectedId) ?? data[0] ?? null;
+        setSelectedBranch(branch);
+      } catch (error) {
+        console.warn("Failed to load footer branch:", error);
+      }
+    };
+
+    void loadBranches();
+
+    // The homepage stores branch selection in localStorage. The native `storage`
+    // event does not fire in the same tab, so check the selected id periodically
+    // without repeatedly fetching branch data.
+    let lastBranchId = window.localStorage.getItem(SELECTED_BRANCH_KEY);
+    const branchWatcher = window.setInterval(() => {
+      const currentBranchId = window.localStorage.getItem(SELECTED_BRANCH_KEY);
+      if (currentBranchId !== lastBranchId) {
+        lastBranchId = currentBranchId;
+        void loadBranches();
+      }
+    }, 250);
+
+    return () => {
+      mounted = false;
+      window.clearInterval(branchWatcher);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (selectedBranchProp) setSelectedBranch(selectedBranchProp);
+  }, [selectedBranchProp]);
+
   const branchName = selectedBranch?.name ?? "Your local branch";
   const branchAddress = selectedBranch?.address ?? "Branch location";
 
@@ -45,7 +94,6 @@ export default function Footer({ selectedBranch }: FooterProps) {
               branch and have them delivered to your door.
             </p>
 
-            {/* Social */}
             <div className="mt-6 flex items-center gap-2">
               <button
                 type="button"
@@ -67,36 +115,19 @@ export default function Footer({ selectedBranch }: FooterProps) {
 
           {/* Shop */}
           <div>
-            <h3 className="text-sm font-bold text-white">
-              Shop {branchName}
-            </h3>
+            <h3 className="text-sm font-bold text-white">Shop {branchName}</h3>
 
             <nav className="mt-4 flex flex-col gap-3">
-              <a
-                href="#products"
-                className="text-sm text-white/50 transition-colors hover:text-white"
-              >
+              <a href="#products" className="text-sm text-white/50 transition-colors hover:text-white">
                 {branchName} Products
               </a>
-
-              <a
-                href="#categories"
-                className="text-sm text-white/50 transition-colors hover:text-white"
-              >
+              <a href="#categories" className="text-sm text-white/50 transition-colors hover:text-white">
                 Categories
               </a>
-
-              <a
-                href="#delivery"
-                className="text-sm text-white/50 transition-colors hover:text-white"
-              >
+              <a href="#delivery" className="text-sm text-white/50 transition-colors hover:text-white">
                 {branchName} Delivery
               </a>
-
-              <a
-                href="#"
-                className="text-sm text-white/50 transition-colors hover:text-white"
-              >
+              <a href="#" className="text-sm text-white/50 transition-colors hover:text-white">
                 Help & Support
               </a>
             </nav>
@@ -104,39 +135,27 @@ export default function Footer({ selectedBranch }: FooterProps) {
 
           {/* Contact */}
           <div>
-            <h3 className="text-sm font-bold text-white">
-              {branchName} Branch
-            </h3>
+            <h3 className="text-sm font-bold text-white">{branchName} Branch</h3>
 
             <div className="mt-4 flex flex-col gap-4">
               <div className="flex items-start gap-3">
                 <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-purple-400" />
-
-                <p className="text-sm leading-5 text-white/50">
-                  {branchAddress}
-                </p>
+                <p className="text-sm leading-5 text-white/50">{branchAddress}</p>
               </div>
 
               <div className="flex items-center gap-3">
                 <Phone className="h-4 w-4 shrink-0 text-purple-400" />
-
-                <p className="text-sm text-white/50">
-                  Contact {branchName} branch
-                </p>
+                <p className="text-sm text-white/50">Contact {branchName} branch</p>
               </div>
 
               <div className="flex items-center gap-3">
                 <Mail className="h-4 w-4 shrink-0 text-purple-400" />
-
-                <p className="text-sm text-white/50">
-                  support@budgetgo.lk
-                </p>
+                <p className="text-sm text-white/50">support@budgetgo.lk</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Bottom */}
         <div className="mt-12 flex flex-col gap-4 border-t border-white/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-white/40">
             © {new Date().getFullYear()} Budget Go. All rights reserved.
@@ -144,11 +163,8 @@ export default function Footer({ selectedBranch }: FooterProps) {
 
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-white/40">
             <ShoppingBag className="h-3.5 w-3.5" />
-
             <span>Shop local. Live better.</span>
-
             <span aria-hidden="true">·</span>
-
             <span>
               Developed by{" "}
               <a
