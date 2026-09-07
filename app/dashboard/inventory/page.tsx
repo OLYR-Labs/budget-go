@@ -5,11 +5,17 @@ import { prisma } from "@/lib/prisma";
 import { getDashboardContext } from "@/lib/dashboard-auth";
 import { getDashboardPermissions } from "@/lib/dashboard-permission";
 
+const PAGE_SIZE = 50;
+
+type InventoryPageProps = {
+  searchParams: Promise<{ page?: string }>;
+};
+
 function money(value: number) {
   return new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR", maximumFractionDigits: 0 }).format(value);
 }
 
-export default async function InventoryDashboardPage() {
+export default async function InventoryDashboardPage({ searchParams }: InventoryPageProps) {
   let context: Awaited<ReturnType<typeof getDashboardContext>>;
   try {
     context = await getDashboardContext();
@@ -20,11 +26,17 @@ export default async function InventoryDashboardPage() {
   const permissions = getDashboardPermissions(context.user.role);
   if (!permissions.canViewInventory) redirect("/dashboard");
 
+  const params = await searchParams;
+  const parsedPage = Number.parseInt(params.page ?? "1", 10);
+  const page = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+  const skip = (page - 1) * PAGE_SIZE;
   const where = context.scope.type === "GLOBAL" ? {} : { branchId: context.scope.branchId };
+
   const inventory = await prisma.branchInventory.findMany({
     where: { ...where, isActive: true, product: { isActive: true } },
     orderBy: [{ stock: "asc" }, { updatedAt: "desc" }],
-    take: 500,
+    skip,
+    take: PAGE_SIZE + 1,
     select: {
       id: true,
       price: true,
@@ -34,9 +46,12 @@ export default async function InventoryDashboardPage() {
     },
   });
 
-  const units = inventory.reduce((sum, item) => sum + item.stock, 0);
-  const value = inventory.reduce((sum, item) => sum + Number(item.price) * item.stock, 0);
-  const lowStock = inventory.filter((item) => item.stock <= 5).length;
+  const hasNextPage = inventory.length > PAGE_SIZE;
+  const rows = hasNextPage ? inventory.slice(0, PAGE_SIZE) : inventory;
+  const hasPreviousPage = page > 1;
+  const units = rows.reduce((sum, item) => sum + item.stock, 0);
+  const value = rows.reduce((sum, item) => sum + Number(item.price) * item.stock, 0);
+  const lowStock = rows.filter((item) => item.stock <= 5).length;
   const isGlobal = context.scope.type === "GLOBAL";
 
   return (
@@ -63,7 +78,7 @@ export default async function InventoryDashboardPage() {
             <table className="w-full min-w-[850px] text-left">
               <thead className="border-b border-border bg-muted/30"><tr className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground"><th className="px-5 py-4">Product</th><th className="px-5 py-4">Branch</th><th className="px-5 py-4">Price</th><th className="px-5 py-4">Stock</th><th className="px-5 py-4">Value</th></tr></thead>
               <tbody className="divide-y divide-border">
-                {inventory.length === 0 ? <tr><td colSpan={5} className="px-5 py-12 text-center text-sm text-muted-foreground">No active inventory found.</td></tr> : inventory.map((item) => {
+                {rows.length === 0 ? <tr><td colSpan={5} className="px-5 py-12 text-center text-sm text-muted-foreground">No active inventory found.</td></tr> : rows.map((item) => {
                   const itemValue = Number(item.price) * item.stock;
                   return <tr key={item.id} className="hover:bg-muted/20">
                     <td className="px-5 py-4"><p className="text-sm font-semibold">{item.product.name}</p><p className="mt-1 text-xs text-muted-foreground">{item.product.sku}{item.product.category ? ` · ${item.product.category.name}` : ""}</p></td>
@@ -75,6 +90,14 @@ export default async function InventoryDashboardPage() {
                 })}
               </tbody>
             </table>
+          </div>
+        </div>
+
+        <div className="mt-5 flex items-center justify-between gap-4">
+          <p className="text-xs text-muted-foreground">Page {page} · Showing up to {PAGE_SIZE} inventory items</p>
+          <div className="flex items-center gap-2">
+            {hasPreviousPage ? <Link href={`/dashboard/inventory?page=${page - 1}`} className="rounded-xl border border-border px-4 py-2 text-xs font-semibold hover:bg-muted">← Previous</Link> : <span className="rounded-xl border border-border px-4 py-2 text-xs font-semibold text-muted-foreground/50">← Previous</span>}
+            {hasNextPage ? <Link href={`/dashboard/inventory?page=${page + 1}`} className="rounded-xl border border-border px-4 py-2 text-xs font-semibold hover:bg-muted">Next →</Link> : <span className="rounded-xl border border-border px-4 py-2 text-xs font-semibold text-muted-foreground/50">Next →</span>}
           </div>
         </div>
       </div>
