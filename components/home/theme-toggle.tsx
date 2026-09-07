@@ -4,6 +4,7 @@ import * as React from "react";
 import { useTheme } from "next-themes";
 
 const THEME_TRANSITION_CLASS = "theme-transition";
+const THEME_TRANSITION_DURATION_MS = 220;
 
 export default function ThemeToggle() {
   const { theme, setTheme } = useTheme();
@@ -35,7 +36,7 @@ export default function ThemeToggle() {
 
     window.setTimeout(() => {
       root.classList.remove(THEME_TRANSITION_CLASS);
-    }, 320);
+    }, THEME_TRANSITION_DURATION_MS);
   };
 
   return (
