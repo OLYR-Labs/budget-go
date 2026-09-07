@@ -119,7 +119,7 @@ model BranchAdmin {
 }
 
 model BranchStaff {
-  id        String   @id @unique
+  id        String   @id @default(cuid())
   userId    String   @unique
   branchId  String
   createdAt DateTime @default(now())
@@ -164,7 +164,7 @@ model Product {
   name        String
   description String?
   sku         String             @unique
-  barcode     String?            @unique
+  barcode     String?           @unique
   imageUrl    String?
   categoryId  String
   isActive    Boolean           @default(true)
@@ -214,7 +214,7 @@ model Order {
   total              Decimal       @db.Decimal(10, 2)
   deliveryLatitude   Float
   deliveryLongitude  Float
-  deliveryDistanceKm Float         
+  deliveryDistanceKm Float
   customerName       String
   customerPhone      String
   notes              String?
