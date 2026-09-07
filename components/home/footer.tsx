@@ -5,7 +5,8 @@ import { Mail, MapPin, Phone, ShoppingBag } from "lucide-react";
 
 type FooterBranch = { id: string; name: string; address?: string | null };
 type FooterProps = { selectedBranch?: FooterBranch | null };
-const SELECTED_BRANCH_KEY = "budget-go-selected-branch";
+const SELECTED_BRANCH_KEY = "sampath-food-city-selected-branch";
+const LEGACY_SELECTED_BRANCH_KEY = "budget-go-selected-branch";
 
 export default function Footer({ selectedBranch: selectedBranchProp }: FooterProps) {
   const [selectedBranch, setSelectedBranch] = useState<FooterBranch | null>(selectedBranchProp ?? null);
@@ -16,13 +17,15 @@ export default function Footer({ selectedBranch: selectedBranchProp }: FooterPro
         const response = await fetch("/api/branches", { cache: "no-store" });
         const data = await response.json().catch(() => null);
         if (!mounted || !response.ok || !Array.isArray(data)) return;
-        const selectedId = window.localStorage.getItem(SELECTED_BRANCH_KEY);
-        setSelectedBranch(data.find((item: FooterBranch) => item.id === selectedId) ?? data[0] ?? null);
+        const selectedId = window.localStorage.getItem(SELECTED_BRANCH_KEY) ?? window.localStorage.getItem(LEGACY_SELECTED_BRANCH_KEY);
+        const branch = data.find((item: FooterBranch) => item.id === selectedId) ?? data[0] ?? null;
+        setSelectedBranch(branch);
+        if (branch) window.localStorage.setItem(LEGACY_SELECTED_BRANCH_KEY, branch.id);
       } catch (error) { console.warn("Failed to load footer branch:", error); }
     };
     void loadBranches();
-    let lastBranchId = window.localStorage.getItem(SELECTED_BRANCH_KEY);
-    const branchWatcher = window.setInterval(() => { const currentBranchId = window.localStorage.getItem(SELECTED_BRANCH_KEY); if (currentBranchId !== lastBranchId) { lastBranchId = currentBranchId; void loadBranches(); } }, 250);
+    let lastBranchId = window.localStorage.getItem(SELECTED_BRANCH_KEY) ?? window.localStorage.getItem(LEGACY_SELECTED_BRANCH_KEY);
+    const branchWatcher = window.setInterval(() => { const currentBranchId = window.localStorage.getItem(SELECTED_BRANCH_KEY) ?? window.localStorage.getItem(LEGACY_SELECTED_BRANCH_KEY); if (currentBranchId !== lastBranchId) { lastBranchId = currentBranchId; void loadBranches(); } }, 250);
     return () => { mounted = false; window.clearInterval(branchWatcher); };
   }, []);
   useEffect(() => { if (selectedBranchProp) setSelectedBranch(selectedBranchProp); }, [selectedBranchProp]);
