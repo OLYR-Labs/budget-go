@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from "react";
-import { LogOut, Moon, Sun } from "lucide-react";
 import ThemeToggle from "@/components/home/theme-toggle";
 import { LogoutButton } from "@/components/dashboard/logout-button";
 
