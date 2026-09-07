@@ -11,6 +11,7 @@ import { useCartStore } from "@/lib/cart-store";
 type Product = { id: string; name: string; description?: string | null; price: number | string; stock: number; imageUrl?: string | null; category?: { name: string } | null };
 type Branch = { id: string; name: string; code: string; address?: string | null; latitude: number; longitude: number; deliveryRadiusKm: number; availableProductCount: number };
 const SELECTED_BRANCH_KEY = "sampath-food-city-selected-branch";
+const LEGACY_SELECTED_BRANCH_KEY = "budget-go-selected-branch";
 const HOME_SCROLL_KEY = "sampath-food-city-home-scroll";
 const HOME_SCROLL_PATH_KEY = "sampath-food-city-home-scroll-path";
 const PRODUCTS_CACHE_PREFIX = "sampath-food-city-home-products:";
@@ -31,6 +32,12 @@ export default function Home() {
   const holdingSavedPositionRef = useRef(false);
   const hasRestoredScrollRef = useRef(false);
 
+  const persistSelectedBranch = useCallback((branchId: string) => {
+    window.localStorage.setItem(SELECTED_BRANCH_KEY, branchId);
+    // Keep the previous checkout key in sync while older checkout sessions exist.
+    window.localStorage.setItem(LEGACY_SELECTED_BRANCH_KEY, branchId);
+  }, []);
+
   const loadBranches = useCallback(async () => {
     try {
       setBranchLoading(true); setBranchError(null);
@@ -38,14 +45,14 @@ export default function Home() {
       const data = await response.json().catch(() => null);
       if (!response.ok || !Array.isArray(data)) throw new Error(data?.error || "Unable to load branches.");
       setBranches(data);
-      const savedId = window.localStorage.getItem(SELECTED_BRANCH_KEY);
+      const savedId = window.localStorage.getItem(SELECTED_BRANCH_KEY) ?? window.localStorage.getItem(LEGACY_SELECTED_BRANCH_KEY);
       const defaultBranch = data.find((branch: Branch) => branch.id === savedId) ?? data.find((branch: Branch) => branch.code === "ING") ?? data[0];
-      if (defaultBranch) { setSelectedBranch(defaultBranch); window.localStorage.setItem(SELECTED_BRANCH_KEY, defaultBranch.id); }
+      if (defaultBranch) { setSelectedBranch(defaultBranch); persistSelectedBranch(defaultBranch.id); }
     } catch (loadError) {
       console.error("Failed to load branches:", loadError);
       setBranchError(loadError instanceof Error ? loadError.message : "Unable to load branches.");
     } finally { setBranchLoading(false); }
-  }, []);
+  }, [persistSelectedBranch]);
 
   const loadProducts = useCallback(async (branchId: string) => {
     const cacheKey = `${PRODUCTS_CACHE_PREFIX}${branchId}`;
@@ -157,7 +164,7 @@ export default function Home() {
       if (!confirmed) return;
       clearCart();
     }
-    setSelectedBranch(branch); window.localStorage.setItem(SELECTED_BRANCH_KEY, branch.id); setLocationOpen(false);
+    setSelectedBranch(branch); persistSelectedBranch(branch.id); setLocationOpen(false);
     window.sessionStorage.removeItem(HOME_SCROLL_KEY);
     window.sessionStorage.setItem(HOME_SCROLL_PATH_KEY, window.location.pathname);
     holdingSavedPositionRef.current = false;
