@@ -44,8 +44,8 @@ model CustomerAddress {
   phone         String
   address       String
   city          String
-  latitude      Float
-  longitude     Float
+  latitude      Float?
+  longitude     Float?
   isDefault     Boolean  @default(false)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -185,7 +185,7 @@ model Product {
   name        String
   description String?
   sku         String             @unique
-  barcode     String?            @unique
+  barcode     String?           @unique
   imageUrl    String?
   categoryId  String
   isActive    Boolean           @default(true)
