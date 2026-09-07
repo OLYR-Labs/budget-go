@@ -8,17 +8,17 @@ import { TabSessionGuard } from "@/components/auth/tab-session-guard";
 
 export const metadata: Metadata = {
   title: {
-    default: "Budget Go",
-    template: "%s | Budget Go",
+    default: "Sampath Food City",
+    template: "%s | Sampath Food City",
   },
   description:
-    "Shop everyday products from your nearest Budget Go branch and get them delivered to your door.",
-  applicationName: "Budget Go",
+    "Shop everyday products from your nearest Sampath Food City branch and get them delivered to your door.",
+  applicationName: "Sampath Food City",
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: "/favicon.png",
-    shortcut: "/favicon.png",
-    apple: "/favicon.png",
+    icon: "/sst-logo.svg",
+    shortcut: "/sst-logo.svg",
+    apple: "/sst-logo.svg",
   },
 };
 
