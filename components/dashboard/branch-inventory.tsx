@@ -130,7 +130,7 @@ export default function BranchInventory({ branchName, branchCode }: Props) {
           <div className="flex items-center gap-2">
             <span className="hidden rounded-full border border-border bg-card px-3 py-1.5 text-[10px] font-semibold text-muted-foreground sm:block">{branchCode} · {branchName}</span>
             <ThemeToggle />
-            <LogoutButton />
+            <LogoutButton compact />
           </div>
         </div>
       </header>
