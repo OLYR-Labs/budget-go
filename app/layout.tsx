@@ -29,16 +29,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="min-h-screen bg-zinc-50 text-zinc-950 antialiased transition-colors duration-300 dark:bg-[#08080b] dark:text-white">
+      <body className="min-h-screen bg-zinc-50 text-zinc-950 antialiased dark:bg-[#08080b] dark:text-white">
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
           enableSystem={false}
-          disableTransitionOnChange={false}
+          disableTransitionOnChange={true}
         >
           <TabSessionGuard>
             {children}
-            <div className="fixed right-4 top-4 z-50">
+            <div className="fixed right-4 top-20 z-40">
               <NotificationBell />
             </div>
             <PushSetup />
