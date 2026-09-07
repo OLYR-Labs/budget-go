@@ -119,7 +119,7 @@ model BranchAdmin {
 }
 
 model BranchStaff {
-  id        String   @id @default(cuid())
+  id        String   @id @unique
   userId    String   @unique
   branchId  String
   createdAt DateTime @default(now())
@@ -271,7 +271,7 @@ model Notification {
 }
 
 model PushSubscription {
-  id        String   @id
+  id        String   @id @default(cuid())
   userId    String
   endpoint  String   @unique
   p256dh    String
