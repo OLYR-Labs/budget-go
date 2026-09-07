@@ -134,7 +134,7 @@
 
 @layer base {
   * { border-color: var(--border); }
-  html { scroll-behavior: smooth; transition: background-color 300ms ease, color 300ms ease; }
+  html { scroll-behavior: smooth; }
   body {
     min-height: 100vh;
     background: var(--background);
@@ -143,12 +143,18 @@
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
   }
-  body, header, main, section, aside, footer, nav, article, form, button, input, textarea, select {
-    transition: background-color 300ms ease, border-color 300ms ease, color 300ms ease, box-shadow 300ms ease;
-  }
   button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
   button:active, a:active { transform: scale(0.98); }
   ::selection { background: var(--accent); color: #ffffff; }
+}
+
+/* Theme changes are animated only while the user explicitly toggles the theme.
+   This avoids the site-wide dimming effect caused by persistent color transitions. */
+.theme-transition,
+.theme-transition *,
+.theme-transition *::before,
+.theme-transition *::after {
+  transition: background-color 320ms ease, border-color 320ms ease, color 320ms ease, box-shadow 320ms ease, fill 320ms ease, stroke 320ms ease !important;
 }
 
 @layer utilities {
