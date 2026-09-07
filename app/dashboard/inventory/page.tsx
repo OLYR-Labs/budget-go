@@ -1,7 +1,6 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
 
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getDashboardContext } from "@/lib/dashboard-auth";
 import { getDashboardPermissions } from "@/lib/dashboard-permission";
@@ -11,10 +10,13 @@ function money(value: number) {
 }
 
 export default async function InventoryDashboardPage() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user) redirect("/login");
+  let context: Awaited<ReturnType<typeof getDashboardContext>>;
+  try {
+    context = await getDashboardContext();
+  } catch {
+    redirect("/login");
+  }
 
-  const context = await getDashboardContext();
   const permissions = getDashboardPermissions(context.user.role);
   if (!permissions.canViewInventory) redirect("/dashboard");
 
@@ -40,14 +42,14 @@ export default async function InventoryDashboardPage() {
   return (
     <main className="min-h-screen bg-background px-5 py-8 text-foreground sm:px-8 lg:px-10">
       <div className="mx-auto max-w-7xl">
-        <a href="/dashboard" className="text-sm font-semibold text-muted-foreground hover:text-foreground">← Back to dashboard</a>
+        <Link href="/dashboard" className="text-sm font-semibold text-muted-foreground hover:text-foreground">← Back to dashboard</Link>
         <div className="mt-8 flex flex-col justify-between gap-5 md:flex-row md:items-end">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-accent">Inventory operations</p>
             <h1 className="mt-2 text-3xl font-black tracking-tight">Inventory</h1>
             <p className="mt-2 text-sm text-muted-foreground">{isGlobal ? "Global branch inventory" : `Inventory for ${context.branch?.name ?? "assigned branch"}`}</p>
           </div>
-          {!isGlobal && <a href="/dashboard/branch" className="inline-flex h-10 items-center justify-center rounded-xl border border-border px-4 text-sm font-semibold hover:bg-muted">Open branch inventory tools</a>}
+          {!isGlobal && <Link href="/dashboard/branch" className="inline-flex h-10 items-center justify-center rounded-xl border border-border px-4 text-sm font-semibold hover:bg-muted">Open branch inventory tools</Link>}
         </div>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
