@@ -10,8 +10,6 @@
   --card-foreground: #111111;
   --popover: #ffffff;
   --popover-foreground: #111111;
-
-  /* Sampath Food City / SST brand */
   --primary: #0b0b0b;
   --primary-foreground: #ffffff;
   --accent: #d71920;
@@ -30,13 +28,11 @@
   --input: #e7e7e7;
   --ring: #d71920;
   --radius: 1rem;
-
   --chart-1: #d71920;
   --chart-2: #111111;
   --chart-3: #ef4444;
   --chart-4: #991b1b;
   --chart-5: #fca5a5;
-
   --sidebar: #ffffff;
   --sidebar-foreground: #111111;
   --sidebar-primary: #0b0b0b;
@@ -148,13 +144,12 @@
   ::selection { background: var(--accent); color: #ffffff; }
 }
 
-/* Theme changes are animated only while the user explicitly toggles the theme.
-   This avoids the site-wide dimming effect caused by persistent color transitions. */
+/* Keep theme changes smooth without interpolating text/icon colors through muddy mid-tones. */
 .theme-transition,
 .theme-transition *,
 .theme-transition *::before,
 .theme-transition *::after {
-  transition: background-color 320ms ease, border-color 320ms ease, color 320ms ease, box-shadow 320ms ease, fill 320ms ease, stroke 320ms ease !important;
+  transition: background-color 220ms ease, border-color 220ms ease, box-shadow 220ms ease !important;
 }
 
 @layer utilities {
@@ -166,9 +161,7 @@
       radial-gradient(circle at 85% 10%, rgba(239, 35, 60, 0.10), transparent 28%),
       var(--background);
   }
-  .bg-red-glow {
-    background: radial-gradient(circle at center, rgba(215, 25, 32, 0.16), transparent 65%);
-  }
+  .bg-red-glow { background: radial-gradient(circle at center, rgba(215, 25, 32, 0.16), transparent 65%); }
   .soft-shadow { box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 30px rgba(0,0,0,.06); }
   .soft-shadow-lg { box-shadow: 0 4px 10px rgba(0,0,0,.04), 0 20px 50px rgba(0,0,0,.08); }
   .red-shadow { box-shadow: 0 4px 12px rgba(215,25,32,.14), 0 12px 30px rgba(215,25,32,.08); }
@@ -182,7 +175,6 @@
   .red-focus:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(215,25,32,.10), 0 4px 15px rgba(215,25,32,.06); }
 }
 
-/* Legacy purple/violet utility compatibility: the existing UI remains structurally intact while adopting the SST red palette. */
 [class*="bg-purple-"], [class*="bg-violet-"] { background-color: var(--accent) !important; }
 [class*="text-purple-"], [class*="text-violet-"] { color: var(--accent) !important; }
 [class*="border-purple-"], [class*="border-violet-"] { border-color: color-mix(in srgb, var(--accent) 35%, transparent) !important; }
@@ -190,34 +182,25 @@
 
 @keyframes shimmer { 0% { background-position: -1000px 0; } 100% { background-position: 1000px 0; } }
 .skeleton { background: linear-gradient(90deg, var(--muted) 25%, color-mix(in srgb, var(--muted) 70%, white) 50%, var(--muted) 75%); background-size: 1000px 100%; animation: shimmer 1.8s infinite linear; }
-
 @keyframes fade-up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 .animate-fade-up { animation: fade-up 500ms cubic-bezier(.22,1,.36,1) both; }
-
 @keyframes product-enter { from { opacity: 0; transform: translateY(16px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
 .animate-product-enter { animation: product-enter 450ms cubic-bezier(.22,1,.36,1) both; }
 .product-image { transition: transform 350ms cubic-bezier(.22,1,.36,1), opacity 250ms ease; }
 .product-card:hover .product-image { transform: scale(1.05); }
-
 @keyframes cart-pop { 0% { transform: scale(1); } 40% { transform: scale(1.12); } 70% { transform: scale(.96); } 100% { transform: scale(1); } }
 .animate-cart-pop { animation: cart-pop 350ms cubic-bezier(.22,1,.36,1); }
-
 @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
 .animate-float { animation: float 4s ease-in-out infinite; }
-
 .brand-accent-line { position: relative; }
 .brand-accent-line::after { content: ""; position: absolute; left: 0; bottom: -6px; width: 32px; height: 3px; border-radius: 999px; background: var(--accent); }
-
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 999px; }
 ::-webkit-scrollbar-thumb:hover { background: #a1a1aa; }
 .dark ::-webkit-scrollbar-thumb { background: #3f3f46; }
 .dark ::-webkit-scrollbar-thumb:hover { background: #52525b; }
-
 html, html body { background-color: var(--background); color: var(--foreground); }
-img, video { transition: opacity 200ms ease, transform 200ms ease; }
-svg { transition: opacity 200ms ease, transform 200ms ease; }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
