@@ -1,8 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-
 import { authClient } from "@/lib/auth-client";
 
 function LogoutIcon() {
@@ -24,9 +22,7 @@ function LogoutIcon() {
 }
 
 export function LogoutButton() {
-  const router = useRouter();
-  const [isLoggingOut, setIsLoggingOut] =
-    useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   async function handleLogout() {
     if (isLoggingOut) return;
@@ -35,9 +31,7 @@ export function LogoutButton() {
 
     try {
       await authClient.signOut();
-
-      router.replace("/login");
-      router.refresh();
+      window.location.replace("/login");
     } catch (error) {
       console.error("Logout failed:", error);
       setIsLoggingOut(false);
@@ -52,12 +46,7 @@ export function LogoutButton() {
       className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-zinc-400 transition hover:bg-red-500/10 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-50"
     >
       <LogoutIcon />
-
-      <span>
-        {isLoggingOut
-          ? "Signing out..."
-          : "Logout"}
-      </span>
+      <span>{isLoggingOut ? "Signing out..." : "Sign out"}</span>
     </button>
   );
 }
