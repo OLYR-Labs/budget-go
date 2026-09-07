@@ -31,7 +31,8 @@ type Quote = {
   branch: string;
 };
 
-const SELECTED_BRANCH_KEY = "budget-go-selected-branch";
+const SELECTED_BRANCH_KEY = "sampath-food-city-selected-branch";
+const LEGACY_SELECTED_BRANCH_KEY = "budget-go-selected-branch";
 const DELIVERY_DETAILS_KEY = "budget-go-delivery-details";
 
 export default function CheckoutDetailsPage() {
@@ -64,7 +65,7 @@ export default function CheckoutDetailsPage() {
   useEffect(() => {
     async function loadBranch() {
       try {
-        const branchId = window.localStorage.getItem(SELECTED_BRANCH_KEY);
+        const branchId = window.localStorage.getItem(SELECTED_BRANCH_KEY) ?? window.localStorage.getItem(LEGACY_SELECTED_BRANCH_KEY);
         if (!branchId) throw new Error("Please select a shopping branch first.");
 
         const response = await fetch("/api/branches", { cache: "no-store" });
@@ -78,6 +79,8 @@ export default function CheckoutDetailsPage() {
         if (!selected) throw new Error("The selected branch is no longer available. Please return to the shop.");
 
         setBranch(selected);
+        window.localStorage.setItem(SELECTED_BRANCH_KEY, selected.id);
+        window.localStorage.setItem(LEGACY_SELECTED_BRANCH_KEY, selected.id);
       } catch (loadError) {
         setError(loadError instanceof Error ? loadError.message : "Unable to load branch information.");
       } finally {
