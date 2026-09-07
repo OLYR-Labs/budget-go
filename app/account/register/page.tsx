@@ -5,6 +5,8 @@ import Link from "next/link";
 import { ArrowRight, CheckCircle2, Eye, EyeOff, Home, LockKeyhole, Mail, MapPin, Phone, ShoppingBag, Sparkles, User } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 
+const fieldInputClass = "w-full rounded-xl border border-input bg-card px-4 py-3 text-sm font-medium text-foreground outline-none transition-all duration-200 placeholder:text-muted-foreground/60 focus:border-accent focus:ring-4 focus:ring-accent/10";
+
 export default function CustomerRegisterPage() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -57,16 +59,16 @@ export default function CustomerRegisterPage() {
             <form onSubmit={handleSubmit} className="mt-8 space-y-4">
               <FormSection title="Personal details" description="The basics we use to identify your account." icon={<User className="h-4 w-4" />}>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <Field icon={<User className="h-4 w-4" />} label="Full name"><input required autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your full name" className="field-input" /></Field>
-                  <Field icon={<Phone className="h-4 w-4" />} label="Phone number"><input required type="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="07X XXX XXXX" className="field-input" /></Field>
-                  <div className="sm:col-span-2"><Field icon={<Mail className="h-4 w-4" />} label="Email address"><input required type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className="field-input" /></Field></div>
+                  <Field icon={<User className="h-4 w-4" />} label="Full name"><input required autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your full name" className={fieldInputClass} /></Field>
+                  <Field icon={<Phone className="h-4 w-4" />} label="Phone number"><input required type="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="07X XXX XXXX" className={fieldInputClass} /></Field>
+                  <div className="sm:col-span-2"><Field icon={<Mail className="h-4 w-4" />} label="Email address"><input required type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className={fieldInputClass} /></Field></div>
                 </div>
               </FormSection>
 
               <FormSection title="Delivery address" description="Save a default address so checkout is faster." icon={<MapPin className="h-4 w-4" />}>
                 <div className="grid gap-4 sm:grid-cols-[1.35fr_0.65fr]">
-                  <Field icon={<Home className="h-4 w-4" />} label="Address"><textarea required autoComplete="street-address" value={address} onChange={(e) => setAddress(e.target.value)} rows={2} placeholder="House number, street, landmark" className="field-input h-auto py-3" /></Field>
-                  <Field icon={<MapPin className="h-4 w-4" />} label="City / area"><input required autoComplete="address-level2" value={city} onChange={(e) => setCity(e.target.value)} placeholder="City or area" className="field-input" /></Field>
+                  <Field icon={<Home className="h-4 w-4" />} label="Address"><textarea required autoComplete="street-address" value={address} onChange={(e) => setAddress(e.target.value)} rows={2} placeholder="House number, street, landmark" className={`${fieldInputClass} resize-none py-3`} /></Field>
+                  <Field icon={<MapPin className="h-4 w-4" />} label="City / area"><input required autoComplete="address-level2" value={city} onChange={(e) => setCity(e.target.value)} placeholder="City or area" className={fieldInputClass} /></Field>
                 </div>
                 <div className="mt-3 flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-[10px] text-muted-foreground"><CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-accent" />This address will be saved as your default delivery address.</div>
               </FormSection>
@@ -74,7 +76,7 @@ export default function CustomerRegisterPage() {
               <FormSection title="Account security" description="Choose a secure password for your SST account." icon={<LockKeyhole className="h-4 w-4" />}>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field icon={<LockKeyhole className="h-4 w-4" />} label="Password"><PasswordInput value={password} onChange={setPassword} show={showPassword} onToggle={() => setShowPassword((v) => !v)} placeholder="At least 8 characters" /></Field>
-                  <Field icon={<LockKeyhole className="h-4 w-4" />} label="Confirm password"><input required minLength={8} type={showPassword ? "text" : "password"} autoComplete="new-password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Re-enter password" className="field-input" /></Field>
+                  <Field icon={<LockKeyhole className="h-4 w-4" />} label="Confirm password"><input required minLength={8} type={showPassword ? "text" : "password"} autoComplete="new-password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Re-enter password" className={fieldInputClass} /></Field>
                 </div>
               </FormSection>
 
@@ -96,5 +98,5 @@ function FormSection({ title, description, icon, children }: { title: string; de
 }
 
 function Field({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) { return <label className="grid gap-2 text-sm font-semibold"><span className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">{icon}{label}</span>{children}</label>; }
-function PasswordInput({ value, onChange, show, onToggle, placeholder }: { value: string; onChange: (value: string) => void; show: boolean; onToggle: () => void; placeholder: string }) { return <div className="relative"><input required minLength={8} type={show ? "text" : "password"} autoComplete="new-password" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="field-input pr-12" /><button type="button" onClick={onToggle} className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" aria-label={show ? "Hide password" : "Show password"}>{show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button></div>; }
+function PasswordInput({ value, onChange, show, onToggle, placeholder }: { value: string; onChange: (value: string) => void; show: boolean; onToggle: () => void; placeholder: string }) { return <div className="relative"><input required minLength={8} type={show ? "text" : "password"} autoComplete="new-password" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className={`${fieldInputClass} pr-12`} /><button type="button" onClick={onToggle} className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" aria-label={show ? "Hide password" : "Show password"}>{show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button></div>; }
 function Benefit({ icon, text }: { icon: React.ReactNode; text: string }) { return <div className="flex items-center gap-3 rounded-xl border border-primary-foreground/10 bg-primary-foreground/[0.06] px-4 py-3 text-xs font-semibold"><span className="text-accent">{icon}</span>{text}</div>; }
