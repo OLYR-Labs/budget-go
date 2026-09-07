@@ -34,7 +34,7 @@ export default function RootLayout({
           attribute="class"
           defaultTheme="light"
           enableSystem={false}
-          disableTransitionOnChange={true}
+          disableTransitionOnChange={false}
         >
           <TabSessionGuard>
             {children}
