@@ -25,7 +25,12 @@ export default function LoginPage() {
       if (result.error) { setError(result.error.message || "Unable to sign in. Please check your credentials."); return; }
       markTabSessionActive();
       const role = result.data?.user?.role;
-      const destination = role === "DELIVERY_STAFF" ? "/delivery" : "/dashboard";
+      const destination =
+        role === "DELIVERY_STAFF"
+          ? "/delivery"
+          : role === "BRANCH_STAFF"
+            ? "/dashboard/branch"
+            : "/dashboard";
       window.location.replace(destination);
     } catch (loginError) {
       console.error("Login failed:", loginError);
