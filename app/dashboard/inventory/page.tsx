@@ -11,6 +11,12 @@ type InventoryPageProps = {
   searchParams: Promise<{ page?: string }>;
 };
 
+type InventoryStats = {
+  inventoryValue: number;
+  stockUnits: number;
+  lowStock: number;
+};
+
 function money(value: number) {
   return new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR", maximumFractionDigits: 0 }).format(value);
 }
@@ -30,29 +36,32 @@ export default async function InventoryDashboardPage({ searchParams }: Inventory
   const parsedPage = Number.parseInt(params.page ?? "1", 10);
   const page = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
   const skip = (page - 1) * PAGE_SIZE;
-  const where = context.scope.type === "GLOBAL" ? {} : { branchId: context.scope.branchId };
+  const isGlobal = context.scope.type === "GLOBAL";
+  const where = isGlobal ? {} : { branchId: context.scope.branchId };
 
-  const inventory = await prisma.branchInventory.findMany({
-    where: { ...where, isActive: true, product: { isActive: true } },
-    orderBy: [{ stock: "asc" }, { updatedAt: "desc" }],
-    skip,
-    take: PAGE_SIZE + 1,
-    select: {
-      id: true,
-      price: true,
-      stock: true,
-      branch: { select: { name: true, code: true } },
-      product: { select: { name: true, sku: true, category: { select: { name: true } } } },
-    },
-  });
+  const [inventory, statsRows] = await Promise.all([
+    prisma.branchInventory.findMany({
+      where: { ...where, isActive: true, product: { isActive: true } },
+      orderBy: [{ stock: "asc" }, { updatedAt: "desc" }],
+      skip,
+      take: PAGE_SIZE + 1,
+      select: {
+        id: true,
+        price: true,
+        stock: true,
+        branch: { select: { name: true, code: true } },
+        product: { select: { name: true, sku: true, category: { select: { name: true } } } },
+      },
+    }),
+    isGlobal
+      ? prisma.$queryRaw<InventoryStats[]>`SELECT COALESCE(SUM("price" * "stock"), 0)::numeric AS "inventoryValue", COALESCE(SUM("stock"), 0)::int AS "stockUnits", COUNT(*) FILTER (WHERE "stock" <= 5)::int AS "lowStock" FROM "BranchInventory" bi WHERE bi."isActive" = true AND EXISTS (SELECT 1 FROM "Product" p WHERE p."id" = bi."productId" AND p."isActive" = true)`
+      : prisma.$queryRaw<InventoryStats[]>`SELECT COALESCE(SUM("price" * "stock"), 0)::numeric AS "inventoryValue", COALESCE(SUM("stock"), 0)::int AS "stockUnits", COUNT(*) FILTER (WHERE "stock" <= 5)::int AS "lowStock" FROM "BranchInventory" bi WHERE bi."branchId" = ${context.scope.branchId} AND bi."isActive" = true AND EXISTS (SELECT 1 FROM "Product" p WHERE p."id" = bi."productId" AND p."isActive" = true)`,
+  ]);
 
   const hasNextPage = inventory.length > PAGE_SIZE;
   const rows = hasNextPage ? inventory.slice(0, PAGE_SIZE) : inventory;
   const hasPreviousPage = page > 1;
-  const units = rows.reduce((sum, item) => sum + item.stock, 0);
-  const value = rows.reduce((sum, item) => sum + Number(item.price) * item.stock, 0);
-  const lowStock = rows.filter((item) => item.stock <= 5).length;
-  const isGlobal = context.scope.type === "GLOBAL";
+  const stats = statsRows[0] ?? { inventoryValue: 0, stockUnits: 0, lowStock: 0 };
 
   return (
     <main className="min-h-screen bg-background px-5 py-8 text-foreground sm:px-8 lg:px-10">
@@ -68,9 +77,9 @@ export default async function InventoryDashboardPage({ searchParams }: Inventory
         </div>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
-          <Stat label="Inventory value" value={money(value)} />
-          <Stat label="Stock units" value={units.toLocaleString("en-LK")} />
-          <Stat label="Low stock" value={String(lowStock)} />
+          <Stat label="Inventory value" value={money(Number(stats.inventoryValue))} />
+          <Stat label="Stock units" value={Number(stats.stockUnits).toLocaleString("en-LK")} />
+          <Stat label="Low stock" value={String(Number(stats.lowStock))} />
         </div>
 
         <div className="mt-6 overflow-hidden rounded-2xl border border-border bg-card">
