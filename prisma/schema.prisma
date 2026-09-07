@@ -28,11 +28,32 @@ model User {
   orders        Order[]
   notifications Notification[]
   pushSubscriptions PushSubscription[]
+  addresses     CustomerAddress[]
 
   sessions      Session[]
   accounts      Account[]
 
   @@index([role])
+}
+
+model CustomerAddress {
+  id            String   @id @default(cuid())
+  userId        String
+  label         String   @default("Home")
+  recipientName String
+  phone         String
+  address       String
+  city          String
+  latitude      Float
+  longitude     Float
+  isDefault     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isDefault])
+  @@index([userId, updatedAt])
 }
 
 model Session {
@@ -164,7 +185,7 @@ model Product {
   name        String
   description String?
   sku         String             @unique
-  barcode     String?           @unique
+  barcode     String?            @unique
   imageUrl    String?
   categoryId  String
   isActive    Boolean           @default(true)
