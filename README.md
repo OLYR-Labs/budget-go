@@ -1,10 +1,10 @@
-# Budget Go
+# Sampath Food City
 
-Budget Go is a multi-branch delivery storefront and operations dashboard built with Next.js, Prisma and PostgreSQL.
+Sampath Food City is a multi-branch shopping storefront and operations dashboard built with Next.js, Prisma and PostgreSQL, with SST-inspired black and red branding.
 
 ## Storefront delivery flow
 
-- Customers can choose from all active branches.
+- Customers can choose from all active Sampath Food City branches.
 - Products, stock and prices are loaded from the selected branch inventory.
 - Changing branch clears the cart because cart prices and availability are branch-specific.
 - Checkout requires an exact map location.
@@ -18,9 +18,18 @@ Budget Go is a multi-branch delivery storefront and operations dashboard built w
 
 The demo seed contains seven branches: Horana, Ingiriya, Bandaragama, Kesbewa, Piliyandala, Panadura and Kalutara. Each active branch receives the seeded demo products in `prisma/seed.ts`.
 
+## Staff access
+
+The administrator dashboard can create:
+
+- Branch Manager accounts
+- Branch Staff accounts
+
+Delivery personnel are not given dashboard access and are not created through the administration dashboard.
+
 ## Push notifications
 
-Budget Go uses standard Web Push for the free demo. Branch managers/staff receive new-order notifications and delivery staff receive assignment notifications. Notifications are also persisted in PostgreSQL and shown in the in-app notification bell.
+The application uses standard Web Push for supported staff notifications. Notifications are persisted in PostgreSQL and shown in the in-app notification bell.
 
 Generate a VAPID key pair once:
 
@@ -28,17 +37,15 @@ Generate a VAPID key pair once:
 npx web-push generate-vapid-keys
 ```
 
-Add the generated values to `.env`:
+Add the generated values to `.env` using an appropriate business-owned VAPID subject:
 
 ```env
-VAPID_SUBJECT="mailto:hello@budgetgo.com"
+VAPID_SUBJECT="mailto:your-business-email@example.com"
 NEXT_PUBLIC_VAPID_PUBLIC_KEY="your-public-key"
 VAPID_PRIVATE_KEY="your-private-key"
 ```
 
 `VAPID_PRIVATE_KEY` must remain server-only. Never expose it with a `NEXT_PUBLIC_` prefix and never commit it.
-
-The browser will show **Enable notifications** to authenticated branch/admin/delivery users when push is configured. The user must grant notification permission on each device/browser they want to receive alerts on.
 
 For local development, use `http://localhost` or another secure HTTPS origin. Production deployments must use HTTPS for browser push.
 
