@@ -3,6 +3,8 @@
 import * as React from "react";
 import { useTheme } from "next-themes";
 
+const THEME_TRANSITION_CLASS = "theme-transition";
+
 export default function ThemeToggle() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
@@ -26,7 +28,14 @@ export default function ThemeToggle() {
   const isDark = theme === "dark";
 
   const toggleTheme = () => {
+    const root = document.documentElement;
+    root.classList.add(THEME_TRANSITION_CLASS);
+
     setTheme(isDark ? "light" : "dark");
+
+    window.setTimeout(() => {
+      root.classList.remove(THEME_TRANSITION_CLASS);
+    }, 320);
   };
 
   return (
@@ -34,27 +43,10 @@ export default function ThemeToggle() {
       type="button"
       onClick={toggleTheme}
       aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
-      className="
-        flex h-9 w-9 items-center justify-center
-        rounded-lg
-        text-zinc-500
-        transition-all duration-200
-        hover:bg-zinc-100
-        hover:text-zinc-950
-        dark:hover:bg-white/[0.06]
-        dark:hover:text-white
-      "
+      className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-500 transition-colors duration-200 hover:bg-zinc-100 hover:text-zinc-950 dark:hover:bg-white/[0.06] dark:hover:text-white"
     >
       {isDark ? (
-        <svg
-          className="h-4 w-4"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
+        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="4" />
           <path d="M12 2v2" />
           <path d="M12 20v2" />
@@ -63,18 +55,10 @@ export default function ThemeToggle() {
           <path d="M2 12h2" />
           <path d="M20 12h2" />
           <path d="m6.34 17.66-1.41 1.41" />
-          <path d="m19.07 4.93-1.41 1.41" />
+          <path d="m19.07 4.93-1.41-1.41" />
         </svg>
       ) : (
-        <svg
-          className="h-4 w-4"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
+        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
           <path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 6.7 6.7 0 0 0 21 12.8Z" />
         </svg>
       )}
