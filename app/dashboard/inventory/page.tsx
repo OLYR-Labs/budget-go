@@ -18,7 +18,11 @@ type InventoryStats = {
 };
 
 function money(value: number) {
-  return new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR", maximumFractionDigits: 0 }).format(value);
+  return new Intl.NumberFormat("en-LK", {
+    style: "currency",
+    currency: "LKR",
+    maximumFractionDigits: 0,
+  }).format(value);
 }
 
 export default async function InventoryDashboardPage({ searchParams }: InventoryPageProps) {
@@ -36,12 +40,23 @@ export default async function InventoryDashboardPage({ searchParams }: Inventory
   const parsedPage = Number.parseInt(params.page ?? "1", 10);
   const page = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
   const skip = (page - 1) * PAGE_SIZE;
-  const isGlobal = context.scope.type === "GLOBAL";
-  const where = isGlobal ? {} : { branchId: context.scope.branchId };
+  const branchId = context.scope.type === "GLOBAL" ? undefined : context.scope.branchId;
+
+  if (context.scope.type !== "GLOBAL" && !branchId) {
+    redirect("/dashboard");
+  }
+
+  const where = {
+    isActive: true,
+    ...(branchId ? { branchId } : {}),
+  };
 
   const [inventory, statsRows] = await Promise.all([
     prisma.branchInventory.findMany({
-      where: { ...where, isActive: true, product: { isActive: true } },
+      where: {
+        ...where,
+        product: { isActive: true },
+      },
       orderBy: [{ stock: "asc" }, { updatedAt: "desc" }],
       skip,
       take: PAGE_SIZE + 1,
@@ -50,63 +65,176 @@ export default async function InventoryDashboardPage({ searchParams }: Inventory
         price: true,
         stock: true,
         branch: { select: { name: true, code: true } },
-        product: { select: { name: true, sku: true, category: { select: { name: true } } } },
+        product: {
+          select: {
+            name: true,
+            sku: true,
+            category: { select: { name: true } },
+          },
+        },
       },
     }),
-    isGlobal
-      ? prisma.$queryRaw<InventoryStats[]>`SELECT COALESCE(SUM("price" * "stock"), 0)::numeric AS "inventoryValue", COALESCE(SUM("stock"), 0)::int AS "stockUnits", COUNT(*) FILTER (WHERE "stock" <= 5)::int AS "lowStock" FROM "BranchInventory" bi WHERE bi."isActive" = true AND EXISTS (SELECT 1 FROM "Product" p WHERE p."id" = bi."productId" AND p."isActive" = true)`
-      : prisma.$queryRaw<InventoryStats[]>`SELECT COALESCE(SUM("price" * "stock"), 0)::numeric AS "inventoryValue", COALESCE(SUM("stock"), 0)::int AS "stockUnits", COUNT(*) FILTER (WHERE "stock" <= 5)::int AS "lowStock" FROM "BranchInventory" bi WHERE bi."branchId" = ${context.scope.branchId} AND bi."isActive" = true AND EXISTS (SELECT 1 FROM "Product" p WHERE p."id" = bi."productId" AND p."isActive" = true)`,
+    branchId
+      ? prisma.$queryRaw<InventoryStats[]>`
+          SELECT
+            COALESCE(SUM(bi."price" * bi."stock"), 0)::numeric AS "inventoryValue",
+            COALESCE(SUM(bi."stock"), 0)::int AS "stockUnits",
+            COUNT(*) FILTER (WHERE bi."stock" <= 5)::int AS "lowStock"
+          FROM "BranchInventory" bi
+          INNER JOIN "Product" p ON p."id" = bi."productId" AND p."isActive" = true
+          WHERE bi."branchId" = ${branchId} AND bi."isActive" = true
+        `
+      : prisma.$queryRaw<InventoryStats[]>`
+          SELECT
+            COALESCE(SUM(bi."price" * bi."stock"), 0)::numeric AS "inventoryValue",
+            COALESCE(SUM(bi."stock"), 0)::int AS "stockUnits",
+            COUNT(*) FILTER (WHERE bi."stock" <= 5)::int AS "lowStock"
+          FROM "BranchInventory" bi
+          INNER JOIN "Product" p ON p."id" = bi."productId" AND p."isActive" = true
+          WHERE bi."isActive" = true
+        `,
   ]);
 
   const hasNextPage = inventory.length > PAGE_SIZE;
   const rows = hasNextPage ? inventory.slice(0, PAGE_SIZE) : inventory;
   const hasPreviousPage = page > 1;
-  const stats = statsRows[0] ?? { inventoryValue: 0, stockUnits: 0, lowStock: 0 };
+  const stats = statsRows[0] ?? {
+    inventoryValue: 0,
+    stockUnits: 0,
+    lowStock: 0,
+  };
+  const isGlobal = context.scope.type === "GLOBAL";
 
   return (
     <main className="min-h-screen bg-background px-5 py-8 text-foreground sm:px-8 lg:px-10">
       <div className="mx-auto max-w-7xl">
-        <Link href="/dashboard" className="text-sm font-semibold text-muted-foreground hover:text-foreground">← Back to dashboard</Link>
+        <Link
+          href="/dashboard"
+          className="text-sm font-semibold text-muted-foreground hover:text-foreground"
+        >
+          ← Back to dashboard
+        </Link>
         <div className="mt-8 flex flex-col justify-between gap-5 md:flex-row md:items-end">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-accent">Inventory operations</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-accent">
+              Inventory operations
+            </p>
             <h1 className="mt-2 text-3xl font-black tracking-tight">Inventory</h1>
-            <p className="mt-2 text-sm text-muted-foreground">{isGlobal ? "Global branch inventory" : `Inventory for ${context.branch?.name ?? "assigned branch"}`}</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {isGlobal
+                ? "Global branch inventory"
+                : `Inventory for ${context.branch?.name ?? "assigned branch"}`}
+            </p>
           </div>
-          {!isGlobal && <Link href="/dashboard/branch" className="inline-flex h-10 items-center justify-center rounded-xl border border-border px-4 text-sm font-semibold hover:bg-muted">Open branch inventory tools</Link>}
+          {!isGlobal && (
+            <Link
+              href="/dashboard/branch"
+              className="inline-flex h-10 items-center justify-center rounded-xl border border-border px-4 text-sm font-semibold hover:bg-muted"
+            >
+              Open branch inventory tools
+            </Link>
+          )}
         </div>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
           <Stat label="Inventory value" value={money(Number(stats.inventoryValue))} />
-          <Stat label="Stock units" value={Number(stats.stockUnits).toLocaleString("en-LK")} />
+          <Stat
+            label="Stock units"
+            value={Number(stats.stockUnits).toLocaleString("en-LK")}
+          />
           <Stat label="Low stock" value={String(Number(stats.lowStock))} />
         </div>
 
         <div className="mt-6 overflow-hidden rounded-2xl border border-border bg-card">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[850px] text-left">
-              <thead className="border-b border-border bg-muted/30"><tr className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground"><th className="px-5 py-4">Product</th><th className="px-5 py-4">Branch</th><th className="px-5 py-4">Price</th><th className="px-5 py-4">Stock</th><th className="px-5 py-4">Value</th></tr></thead>
+              <thead className="border-b border-border bg-muted/30">
+                <tr className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+                  <th className="px-5 py-4">Product</th>
+                  <th className="px-5 py-4">Branch</th>
+                  <th className="px-5 py-4">Price</th>
+                  <th className="px-5 py-4">Stock</th>
+                  <th className="px-5 py-4">Value</th>
+                </tr>
+              </thead>
               <tbody className="divide-y divide-border">
-                {rows.length === 0 ? <tr><td colSpan={5} className="px-5 py-12 text-center text-sm text-muted-foreground">No active inventory found.</td></tr> : rows.map((item) => {
-                  const itemValue = Number(item.price) * item.stock;
-                  return <tr key={item.id} className="hover:bg-muted/20">
-                    <td className="px-5 py-4"><p className="text-sm font-semibold">{item.product.name}</p><p className="mt-1 text-xs text-muted-foreground">{item.product.sku}{item.product.category ? ` · ${item.product.category.name}` : ""}</p></td>
-                    <td className="px-5 py-4 text-sm">{item.branch.name} <span className="text-xs text-muted-foreground">({item.branch.code})</span></td>
-                    <td className="px-5 py-4 text-sm font-semibold">{money(Number(item.price))}</td>
-                    <td className={`px-5 py-4 text-sm font-bold ${item.stock <= 5 ? "text-destructive" : ""}`}>{item.stock}</td>
-                    <td className="px-5 py-4 text-sm font-semibold">{money(itemValue)}</td>
-                  </tr>;
-                })}
+                {rows.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-5 py-12 text-center text-sm text-muted-foreground">
+                      No active inventory found.
+                    </td>
+                  </tr>
+                ) : (
+                  rows.map((item) => {
+                    const itemValue = Number(item.price) * item.stock;
+                    return (
+                      <tr key={item.id} className="hover:bg-muted/20">
+                        <td className="px-5 py-4">
+                          <p className="text-sm font-semibold">{item.product.name}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {item.product.sku}
+                            {item.product.category
+                              ? ` · ${item.product.category.name}`
+                              : ""}
+                          </p>
+                        </td>
+                        <td className="px-5 py-4 text-sm">
+                          {item.branch.name}{" "}
+                          <span className="text-xs text-muted-foreground">
+                            ({item.branch.code})
+                          </span>
+                        </td>
+                        <td className="px-5 py-4 text-sm font-semibold">
+                          {money(Number(item.price))}
+                        </td>
+                        <td
+                          className={`px-5 py-4 text-sm font-bold ${
+                            item.stock <= 5 ? "text-destructive" : ""
+                          }`}
+                        >
+                          {item.stock}
+                        </td>
+                        <td className="px-5 py-4 text-sm font-semibold">
+                          {money(itemValue)}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
         </div>
 
         <div className="mt-5 flex items-center justify-between gap-4">
-          <p className="text-xs text-muted-foreground">Page {page} · Showing up to {PAGE_SIZE} inventory items</p>
+          <p className="text-xs text-muted-foreground">
+            Page {page} · Showing up to {PAGE_SIZE} inventory items
+          </p>
           <div className="flex items-center gap-2">
-            {hasPreviousPage ? <Link href={`/dashboard/inventory?page=${page - 1}`} className="rounded-xl border border-border px-4 py-2 text-xs font-semibold hover:bg-muted">← Previous</Link> : <span className="rounded-xl border border-border px-4 py-2 text-xs font-semibold text-muted-foreground/50">← Previous</span>}
-            {hasNextPage ? <Link href={`/dashboard/inventory?page=${page + 1}`} className="rounded-xl border border-border px-4 py-2 text-xs font-semibold hover:bg-muted">Next →</Link> : <span className="rounded-xl border border-border px-4 py-2 text-xs font-semibold text-muted-foreground/50">Next →</span>}
+            {hasPreviousPage ? (
+              <Link
+                href={`/dashboard/inventory?page=${page - 1}`}
+                className="rounded-xl border border-border px-4 py-2 text-xs font-semibold hover:bg-muted"
+              >
+                ← Previous
+              </Link>
+            ) : (
+              <span className="rounded-xl border border-border px-4 py-2 text-xs font-semibold text-muted-foreground/50">
+                ← Previous
+              </span>
+            )}
+            {hasNextPage ? (
+              <Link
+                href={`/dashboard/inventory?page=${page + 1}`}
+                className="rounded-xl border border-border px-4 py-2 text-xs font-semibold hover:bg-muted"
+              >
+                Next →
+              </Link>
+            ) : (
+              <span className="rounded-xl border border-border px-4 py-2 text-xs font-semibold text-muted-foreground/50">
+                Next →
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -115,5 +243,10 @@ export default async function InventoryDashboardPage({ searchParams }: Inventory
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-2xl border border-border bg-card p-5"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-3 text-2xl font-black">{value}</p></div>;
+  return (
+    <div className="rounded-2xl border border-border bg-card p-5">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="mt-3 text-2xl font-black">{value}</p>
+    </div>
+  );
 }
