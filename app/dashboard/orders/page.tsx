@@ -1,18 +1,19 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
 
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getDashboardContext } from "@/lib/dashboard-auth";
 import { getDashboardPermissions } from "@/lib/dashboard-permission";
 import OrderAssignmentTable from "@/components/dashboard/order-assignment-table";
 
 export default async function OrdersDashboardPage() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user) redirect("/login");
+  let context: Awaited<ReturnType<typeof getDashboardContext>>;
+  try {
+    context = await getDashboardContext();
+  } catch {
+    redirect("/login");
+  }
 
-  const context = await getDashboardContext();
   const permissions = getDashboardPermissions(context.user.role);
   if (!permissions.canViewOperationalOrders && !permissions.canViewCompletedOrders) redirect("/dashboard");
 
