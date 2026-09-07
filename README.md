@@ -65,3 +65,7 @@ npm run build
 ```
 
 The repository CI workflow runs dependency installation, Prisma Client generation, linting and the production build on pushes to `main` and pull requests.
+
+## Deployment
+
+Production deploys are connected to the `main` branch on Vercel.
