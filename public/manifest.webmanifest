@@ -1,21 +1,16 @@
 {
-  "name": "Budget Go",
-  "short_name": "Budget Go",
-  "description": "Budget Go delivery and branch operations",
+  "name": "Sampath Food City",
+  "short_name": "Sampath",
+  "description": "Sampath Food City shopping, delivery and branch operations",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#111111",
+  "theme_color": "#D71920",
   "icons": [
     {
-      "src": "/favicon.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "/favicon.png",
-      "sizes": "512x512",
-      "type": "image/png"
+      "src": "/sst-logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
     }
   ]
 }
