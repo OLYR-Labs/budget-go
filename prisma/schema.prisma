@@ -31,6 +31,8 @@ model User {
 
   sessions      Session[]
   accounts      Account[]
+
+  @@index([role])
 }
 
 model Session {
@@ -161,8 +163,8 @@ model Product {
   id          String            @id @default(cuid())
   name        String
   description String?
-  sku         String            @unique
-  barcode     String?           @unique
+  sku         String             @unique
+  barcode     String?            @unique
   imageUrl    String?
   categoryId  String
   isActive    Boolean           @default(true)
@@ -195,6 +197,7 @@ model BranchInventory {
   @@index([branchId])
   @@index([productId])
   @@index([isActive])
+  @@index([branchId, isActive, stock, updatedAt])
 }
 
 model Order {
@@ -211,7 +214,7 @@ model Order {
   total              Decimal       @db.Decimal(10, 2)
   deliveryLatitude   Float
   deliveryLongitude  Float
-  deliveryDistanceKm Float
+  deliveryDistanceKm Float         
   customerName       String
   customerPhone      String
   notes              String?
@@ -229,6 +232,9 @@ model Order {
   @@index([status])
   @@index([paymentStatus])
   @@index([createdAt])
+  @@index([branchId, createdAt])
+  @@index([branchId, status])
+  @@index([branchId, paymentStatus])
 }
 
 model OrderItem {
@@ -265,7 +271,7 @@ model Notification {
 }
 
 model PushSubscription {
-  id        String   @id @default(cuid())
+  id        String   @id
   userId    String
   endpoint  String   @unique
   p256dh    String
